@@ -1102,3 +1102,4 @@ DBngin-Database/postgresql/pg_wal/000000010000000000000001
 DBngin-Database/postgresql/pg_xact/0000
 DBngin-Database/postgresql/postgresql.auto.conf
 DBngin-Database/postgresql/postgresql.conf
+/DBngin-Database/
