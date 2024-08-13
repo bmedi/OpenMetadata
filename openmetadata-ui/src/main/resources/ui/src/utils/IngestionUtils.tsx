@@ -39,7 +39,7 @@ import { ELASTIC_SEARCH_RE_INDEX_PAGE_TABS } from '../enums/ElasticSearch.enum';
 import { FormSubmitType } from '../enums/form.enum';
 import { PipelineType } from '../generated/api/services/ingestionPipelines/createIngestionPipeline';
 import { UIThemePreference } from '../generated/configuration/uiThemePreference';
-import { HiveMetastoreConnection as Connection } from '../generated/entity/services/databaseService';
+import { HiveMetastoreConnectionDetails as Connection } from '../generated/entity/services/databaseService';
 import {
   IngestionPipeline,
   StepSummary,
@@ -285,13 +285,12 @@ const getPipelineExtraInfo = (
 };
 
 export const getErrorPlaceHolder = (
-  isRequiredDetailsAvailable: boolean,
   ingestionDataLength: number,
   isPlatFormDisabled: boolean,
   theme: UIThemePreference['customTheme'],
   pipelineType?: PipelineType
 ) => {
-  if (isRequiredDetailsAvailable && ingestionDataLength === 0) {
+  if (ingestionDataLength === 0) {
     return (
       <ErrorPlaceHolder className="p-y-lg" type={ERROR_PLACEHOLDER_TYPE.CUSTOM}>
         {getPipelineExtraInfo(isPlatFormDisabled, theme, pipelineType)}

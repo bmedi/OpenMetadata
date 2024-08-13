@@ -17,6 +17,7 @@ import { PagingResponse, RestoreRequestType } from 'Models';
 import { SORT_ORDER } from '../enums/common.enum';
 import { CreateTestCase } from '../generated/api/tests/createTestCase';
 import { CreateTestSuite } from '../generated/api/tests/createTestSuite';
+import { DataQualityReport } from '../generated/tests/dataQualityReport';
 import {
   TableData,
   TestCase,
@@ -74,6 +75,10 @@ export type ListTestCaseParamsBySearch = ListTestCaseParams & {
   testPlatforms?: TestPlatform[];
   offset?: number;
   owner?: string;
+  tags?: string;
+  tier?: string;
+  serviceName?: string;
+  dataQualityDimension?: string;
 };
 
 export type ListTestDefinitionsParams = ListParams & {
@@ -93,6 +98,12 @@ export type ListTestCaseResultsParams = Omit<
 export type AddTestCaseToLogicalTestSuiteType = {
   testCaseIds: string[];
   testSuiteId: string;
+};
+
+export type DataQualityReportParamsType = {
+  q?: string;
+  aggregationQuery: string;
+  index: string;
 };
 
 const testCaseUrl = '/dataQuality/testCases';
@@ -323,6 +334,17 @@ export const restoreTestSuite = async (id: string) => {
     RestoreRequestType,
     AxiosResponse<TestSuite>
   >('/dataQuality/testSuites/restore', { id });
+
+  return response.data;
+};
+
+export const getDataQualityReport = async (
+  params: DataQualityReportParamsType
+) => {
+  const response = await APIClient.get<DataQualityReport>(
+    `${testSuiteUrl}/dataQualityReport`,
+    { params }
+  );
 
   return response.data;
 };

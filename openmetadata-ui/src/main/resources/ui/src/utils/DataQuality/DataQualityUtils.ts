@@ -10,8 +10,16 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+import { isArray, isUndefined, omit, omitBy } from 'lodash';
+import { TestCaseSearchParams } from '../../components/DataQuality/DataQuality.interface';
 import { TEST_CASE_FILTERS } from '../../constants/profiler.constant';
+import { TestCaseParameterValue } from '../../generated/tests/testCase';
+import {
+  TestDataType,
+  TestDefinition,
+} from '../../generated/tests/testDefinition';
 import { ListTestCaseParamsBySearch } from '../../rest/testAPI';
+import { generateEntityLink } from '../TableUtils';
 
 /**
  * Builds the parameters for a test case search based on the given filters.
@@ -39,5 +47,56 @@ export const buildTestCaseParams = (
     ...filterParams('testPlatforms', TEST_CASE_FILTERS.platform),
     ...filterParams('testCaseType', TEST_CASE_FILTERS.type),
     ...filterParams('testCaseStatus', TEST_CASE_FILTERS.status),
+    ...filterParams('tags', TEST_CASE_FILTERS.tags),
+    ...filterParams('tier', TEST_CASE_FILTERS.tier),
+    ...filterParams('serviceName', TEST_CASE_FILTERS.service),
   };
+};
+
+export const createTestCaseParameters = (
+  params?: Record<string, string | { [key: string]: string }[]>,
+  selectedDefinition?: TestDefinition
+): TestCaseParameterValue[] | undefined => {
+  return params
+    ? Object.entries(params).reduce((acc, [key, value]) => {
+        const paramDef = selectedDefinition?.parameterDefinition?.find(
+          (param) => param.name === key
+        );
+
+        if (paramDef?.dataType === TestDataType.Array && isArray(value)) {
+          const arrayValues = value.map((item) => item.value).filter(Boolean);
+          if (arrayValues.length) {
+            acc.push({ name: key, value: JSON.stringify(arrayValues) });
+          }
+        } else {
+          acc.push({ name: key, value: value as string });
+        }
+
+        return acc;
+      }, [] as TestCaseParameterValue[])
+    : params;
+};
+
+export const getTestCaseFiltersValue = (
+  values: TestCaseSearchParams,
+  selectedFilter: string[]
+) => {
+  const { lastRunRange, tableFqn } = values;
+  const startTimestamp = lastRunRange?.startTs;
+  const endTimestamp = lastRunRange?.endTs;
+  const entityLink = tableFqn ? generateEntityLink(tableFqn) : undefined;
+
+  const apiParams = {
+    ...omit(values, ['lastRunRange', 'tableFqn', 'searchValue']),
+    startTimestamp,
+    endTimestamp,
+    entityLink,
+  };
+
+  const updatedParams = omitBy(
+    buildTestCaseParams(apiParams, selectedFilter),
+    isUndefined
+  );
+
+  return updatedParams;
 };

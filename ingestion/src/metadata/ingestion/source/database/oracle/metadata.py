@@ -54,6 +54,7 @@ from metadata.ingestion.source.database.oracle.queries import (
 )
 from metadata.ingestion.source.database.oracle.utils import (
     _get_col_type,
+    _get_constraint_data,
     get_columns,
     get_mview_definition,
     get_mview_names,
@@ -61,6 +62,8 @@ from metadata.ingestion.source.database.oracle.utils import (
     get_table_comment,
     get_table_names,
     get_view_definition,
+    get_view_names,
+    get_view_names_dialect,
 )
 from metadata.ingestion.source.database.stored_procedures_mixin import (
     QueryByProcedure,
@@ -97,9 +100,13 @@ OracleDialect.get_table_names = get_table_names
 Inspector.get_mview_names = get_mview_names
 Inspector.get_mview_definition = get_mview_definition
 OracleDialect.get_mview_names = get_mview_names_dialect
+Inspector.get_view_names = get_view_names
+OracleDialect.get_view_names = get_view_names_dialect
 
 Inspector.get_all_table_ddls = get_all_table_ddls
 Inspector.get_table_ddl = get_table_ddl
+
+OracleDialect._get_constraint_data = _get_constraint_data
 
 
 class OracleSource(StoredProcedureMixin, CommonDbSourceService):
@@ -112,8 +119,8 @@ class OracleSource(StoredProcedureMixin, CommonDbSourceService):
     def create(
         cls, config_dict, metadata: OpenMetadata, pipeline_name: Optional[str] = None
     ):
-        config = WorkflowSource.parse_obj(config_dict)
-        connection: OracleConnection = config.serviceConnection.__root__.config
+        config = WorkflowSource.model_validate(config_dict)
+        connection: OracleConnection = config.serviceConnection.root.config
         if not isinstance(connection, OracleConnection):
             raise InvalidSourceException(
                 f"Expected OracleConnection, but got {connection}"
@@ -154,20 +161,23 @@ class OracleSource(StoredProcedureMixin, CommonDbSourceService):
                 schema_definition = inspector.get_table_ddl(
                     self.connection, table_name, schema_name
                 )
+                return (
+                    str(schema_definition).strip()
+                    if schema_definition is not None
+                    else None
+                )
 
-            else:
-                definition_fn = inspector.get_view_definition
-                if table_type == TableType.MaterializedView:
-                    definition_fn = inspector.get_mview_definition
+            definition_fn = inspector.get_view_definition
+            if table_type == TableType.MaterializedView:
+                definition_fn = inspector.get_mview_definition
 
-                schema_definition = definition_fn(table_name, schema_name)
+            schema_definition = definition_fn(table_name, schema_name)
 
-            schema_definition = (
-                str(schema_definition.strip())
+            return (
+                str(schema_definition).strip()
                 if schema_definition is not None
                 else None
             )
-            return schema_definition
 
         except NotImplementedError:
             logger.warning("Schema definition not implemented")
@@ -214,13 +224,13 @@ class OracleSource(StoredProcedureMixin, CommonDbSourceService):
 
         try:
             stored_procedure_request = CreateStoredProcedureRequest(
-                name=EntityName(__root__=stored_procedure.name),
+                name=EntityName(stored_procedure.name),
                 storedProcedureCode=StoredProcedureCode(
                     language=Language.SQL,
                     code=stored_procedure.definition,
                 ),
-                owner=self.metadata.get_reference_by_name(
-                    name=stored_procedure.owner.lower()
+                owners=self.metadata.get_reference_by_name(
+                    name=stored_procedure.owner.lower(), is_owner=True
                 ),
                 databaseSchema=fqn.build(
                     metadata=self.metadata,

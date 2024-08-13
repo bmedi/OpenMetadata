@@ -55,7 +55,7 @@ import {
   getObservabilityAlertsEditPath,
   getSettingPath,
 } from '../../utils/RouterUtils';
-import { getEntityIcon } from '../../utils/TableUtils';
+import searchClassBase from '../../utils/SearchClassBase';
 import { AlertDetailsPageProps } from './AlertDetailsPage.interface';
 
 function AlertDetailsPage({
@@ -273,7 +273,9 @@ function AlertDetailsPage({
   return (
     <ResizablePanels
       hideSecondPanel
+      className="content-height-with-resizable-panel"
       firstPanel={{
+        className: 'content-resizable-panel-container',
         children: loading ? (
           <Loader />
         ) : (
@@ -364,7 +366,7 @@ function AlertDetailsPage({
                   subHeading={t('message.alerts-source-description')}>
                   <div className="d-flex items-center gap-2 m-l-sm">
                     <div className="d-flex h-4 w-4">
-                      {getEntityIcon(resource ?? '')}
+                      {searchClassBase.getEntityIcon(resource ?? '')}
                     </div>
                     <span data-testid="resource-name">
                       {startCase(resource)}
@@ -418,7 +420,11 @@ function AlertDetailsPage({
         flex: 0.7,
       }}
       pageTitle={t('label.entity-detail-plural', { entity: t('label.alert') })}
-      secondPanel={{ children: <></>, minWidth: 0 }}
+      secondPanel={{
+        children: <></>,
+        minWidth: 0,
+        className: 'content-resizable-panel-container',
+      }}
     />
   );
 }

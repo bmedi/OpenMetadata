@@ -33,6 +33,34 @@ const mockLocation = {
   search: '',
 };
 
+const mockList = {
+  data: [
+    {
+      id: 'id',
+      name: 'sample_data.ecommerce_db.shopify.dim_address.testSuite',
+      fullyQualifiedName:
+        'sample_data.ecommerce_db.shopify.dim_address.testSuite',
+      description: 'This is an executable test suite linked to an entity',
+      serviceType: 'TestSuite',
+      href: 'href',
+      deleted: false,
+      executable: true,
+      executableEntityReference: {
+        id: 'id1',
+        type: 'table',
+        name: 'dim_address',
+        fullyQualifiedName: 'sample_data.ecommerce_db.shopify.dim_address',
+      },
+      testCaseResultSummary: [],
+    },
+  ],
+  paging: {
+    offset: 0,
+    limit: 15,
+    total: 1,
+  },
+};
+
 jest.mock('../../../../context/PermissionProvider/PermissionProvider', () => ({
   usePermissionProvider: jest.fn().mockImplementation(() => ({
     permissions: {
@@ -45,9 +73,7 @@ jest.mock('../../../../rest/testAPI', () => {
     ...jest.requireActual('../../../../rest/testAPI'),
     getListTestSuitesBySearch: jest
       .fn()
-      .mockImplementation(() =>
-        Promise.resolve({ data: [], paging: { total: 0 } })
-      ),
+      .mockImplementation(() => Promise.resolve(mockList)),
   };
 });
 jest.mock('react-router-dom', () => {
@@ -122,7 +148,7 @@ describe('TestSuites component', () => {
       await screen.findByTestId('test-suite-container')
     ).toBeInTheDocument();
     expect(mockGetListTestSuites).toHaveBeenCalledWith({
-      fields: 'owner,summary',
+      fields: ['owners', 'summary'],
       includeEmptyTestSuites: false,
       limit: 15,
       offset: 0,
@@ -144,7 +170,7 @@ describe('TestSuites component', () => {
     render(<TestSuites {...mockProps} />, { wrapper: MemoryRouter });
 
     expect(mockGetListTestSuites).toHaveBeenCalledWith({
-      fields: 'owner,summary',
+      fields: ['owners', 'summary'],
       includeEmptyTestSuites: false,
       limit: 15,
       offset: 0,
@@ -189,7 +215,7 @@ describe('TestSuites component', () => {
       await screen.findByTestId('test-suite-container')
     ).toBeInTheDocument();
     expect(mockGetListTestSuites).toHaveBeenCalledWith({
-      fields: 'owner,summary',
+      fields: ['owners', 'summary'],
       includeEmptyTestSuites: true,
       limit: 15,
       offset: 0,

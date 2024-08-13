@@ -50,10 +50,11 @@ import org.junit.jupiter.api.TestInstance;
 import org.openmetadata.common.utils.CommonUtil;
 import org.openmetadata.schema.service.configuration.elasticsearch.ElasticSearchConfiguration;
 import org.openmetadata.schema.type.IndexMappingLanguage;
-import org.openmetadata.service.fernet.Fernet;
 import org.openmetadata.service.jdbi3.locator.ConnectionAwareAnnotationSqlLocator;
 import org.openmetadata.service.jdbi3.locator.ConnectionType;
 import org.openmetadata.service.resources.CollectionRegistry;
+import org.openmetadata.service.resources.events.MSTeamsCallbackResource;
+import org.openmetadata.service.resources.events.SlackCallbackResource;
 import org.openmetadata.service.resources.events.WebhookCallbackResource;
 import org.openmetadata.service.search.SearchRepository;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -74,12 +75,17 @@ public abstract class OpenMetadataApplicationTest {
   public static final Integer ELASTIC_BATCH_SIZE = 10;
   public static final IndexMappingLanguage ELASTIC_SEARCH_INDEX_MAPPING_LANGUAGE =
       IndexMappingLanguage.EN;
+  public static final String ELASTIC_SEARCH_CLUSTER_ALIAS = "openmetadata";
   public static final ElasticSearchConfiguration.SearchType ELASTIC_SEARCH_TYPE =
       ElasticSearchConfiguration.SearchType.ELASTICSEARCH;
   public static DropwizardAppExtension<OpenMetadataApplicationConfig> APP;
+
   protected static final WebhookCallbackResource webhookCallbackResource =
       new WebhookCallbackResource();
-  public static final String FERNET_KEY_1 = "ihZpp5gmmDvVsgoOG6OVivKWwC9vd5JQ";
+  protected static final SlackCallbackResource slackCallbackResource = new SlackCallbackResource();
+  protected static final MSTeamsCallbackResource teamsCallbackResource =
+      new MSTeamsCallbackResource();
+
   public static Jdbi jdbi;
   private static ElasticsearchContainer ELASTIC_SEARCH_CONTAINER;
 
@@ -97,7 +103,8 @@ public abstract class OpenMetadataApplicationTest {
 
   static {
     CollectionRegistry.addTestResource(webhookCallbackResource);
-    Fernet.getInstance().setFernetKey(FERNET_KEY_1);
+    CollectionRegistry.addTestResource(slackCallbackResource);
+    CollectionRegistry.addTestResource(teamsCallbackResource);
   }
 
   @BeforeAll
@@ -162,6 +169,7 @@ public abstract class OpenMetadataApplicationTest {
     ELASTIC_SEARCH_CONTAINER.withPassword("password");
     ELASTIC_SEARCH_CONTAINER.withEnv("discovery.type", "single-node");
     ELASTIC_SEARCH_CONTAINER.withEnv("xpack.security.enabled", "false");
+    ELASTIC_SEARCH_CONTAINER.withEnv("ES_JAVA_OPTS", "-Xms1g -Xmx1g");
     ELASTIC_SEARCH_CONTAINER.withReuse(false);
     ELASTIC_SEARCH_CONTAINER.withStartupAttempts(3);
     ELASTIC_SEARCH_CONTAINER.setWaitStrategy(
@@ -196,6 +204,7 @@ public abstract class OpenMetadataApplicationTest {
         ConnectionType.from(sqlContainer.getDriverClassName()),
         nativeMigrationScriptsLocation,
         extensionMigrationScripsLocation,
+        null,
         false);
     createIndices();
     APP.before();
@@ -248,6 +257,7 @@ public abstract class OpenMetadataApplicationTest {
         .withKeepAliveTimeoutSecs(ELASTIC_KEEP_ALIVE_TIMEOUT)
         .withBatchSize(ELASTIC_BATCH_SIZE)
         .withSearchIndexMappingLanguage(ELASTIC_SEARCH_INDEX_MAPPING_LANGUAGE)
+        .withClusterAlias(ELASTIC_SEARCH_CLUSTER_ALIAS)
         .withSearchType(ELASTIC_SEARCH_TYPE);
     SearchRepository searchRepository = new SearchRepository(esConfig);
     LOG.info("creating indexes.");
@@ -305,6 +315,8 @@ public abstract class OpenMetadataApplicationTest {
         ConfigOverride.config(
             "elasticsearch.searchIndexMappingLanguage",
             ELASTIC_SEARCH_INDEX_MAPPING_LANGUAGE.value()));
+    configOverrides.add(
+        ConfigOverride.config("elasticsearch.clusterAlias", ELASTIC_SEARCH_CLUSTER_ALIAS));
     configOverrides.add(
         ConfigOverride.config("elasticsearch.searchType", ELASTIC_SEARCH_TYPE.value()));
   }

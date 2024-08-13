@@ -17,7 +17,10 @@ import javax.ws.rs.core.Response;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.openmetadata.schema.dataInsight.DataInsightChartResult;
+import org.openmetadata.schema.dataInsight.custom.DataInsightCustomChart;
+import org.openmetadata.schema.dataInsight.custom.DataInsightCustomChartResultList;
 import org.openmetadata.schema.service.configuration.elasticsearch.ElasticSearchConfiguration;
+import org.openmetadata.schema.tests.DataQualityReport;
 import org.openmetadata.schema.type.EntityReference;
 import org.openmetadata.service.exception.CustomExceptionMessage;
 import org.openmetadata.service.search.models.IndexMapping;
@@ -35,6 +38,8 @@ public interface SearchClient {
 
   String DELETE = "delete";
   String GLOBAL_SEARCH_ALIAS = "all";
+  String GLOSSARY_TERM_SEARCH_INDEX = "glossary_term_search_index";
+  String TAG_SEARCH_INDEX = "tag_search_index";
   String DEFAULT_UPDATE_SCRIPT = "for (k in params.keySet()) { ctx._source.put(k, params.get(k)) }";
   String REMOVE_DOMAINS_CHILDREN_SCRIPT = "ctx._source.remove('domain')";
   String PROPAGATE_ENTITY_REFERENCE_FIELD_SCRIPT =
@@ -61,6 +66,8 @@ public interface SearchClient {
   String REMOVE_TEST_SUITE_CHILDREN_SCRIPT =
       "for (int i = 0; i < ctx._source.testSuites.length; i++) { if (ctx._source.testSuites[i].id == '%s') { ctx._source.testSuites.remove(i) }}";
 
+  String ADD_REMOVE_OWNERS_SCRIPT =
+      "if (ctx._source.owners != null) { ctx._source.owners.clear(); } else { ctx._source.owners = []; } for (int i = 0; i < params.owners.size(); i++) { def newOwner = params.owners[i]; ctx._source.owners.add(newOwner); }";
   String NOT_IMPLEMENTED_ERROR_TYPE = "NOT_IMPLEMENTED";
 
   boolean isClientAvailable();
@@ -120,6 +127,9 @@ public interface SearchClient {
 
   JsonObject aggregate(String query, String index, JsonObject aggregationJson) throws IOException;
 
+  DataQualityReport genericAggregation(
+      String query, String index, Map<String, Object> aggregationMetadata) throws IOException;
+
   Response suggest(SearchRequest request) throws IOException;
 
   void createEntity(String indexName, String docId, String doc);
@@ -174,6 +184,9 @@ public interface SearchClient {
       String queryFilter,
       String dataReportIndex)
       throws IOException, ParseException;
+
+  // TODO: Think if it makes sense to have this or maybe a specific deleteByRange
+  public void deleteByQuery(String index, String query) throws IOException;
 
   default BulkResponse bulk(BulkRequest data, RequestOptions options) throws IOException {
     throw new CustomExceptionMessage(
@@ -232,4 +245,15 @@ public interface SearchClient {
   static String getAggregationKeyValue(JsonObject aggregationJson) {
     return aggregationJson.getString("key");
   }
+
+  default DataInsightCustomChartResultList buildDIChart(
+      DataInsightCustomChart diChart, long start, long end) throws IOException {
+    return null;
+  }
+
+  default List<Map<String, String>> fetchDIChartFields() throws IOException {
+    return null;
+  }
+
+  Object getLowLevelClient();
 }

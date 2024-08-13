@@ -109,6 +109,19 @@ class AdvancedSearchClassBase {
         useAsyncSearch: true,
       },
     },
+
+    tableType: {
+      label: t('label.table-type'),
+      type: 'select',
+      mainWidgetProps: this.mainWidgetProps,
+      fieldSettings: {
+        asyncFetch: this.autocomplete({
+          searchIndex: SearchIndex.TABLE,
+          entityField: EntityFields.TABLE_TYPE,
+        }),
+        useAsyncSearch: true,
+      },
+    },
   };
 
   /**
@@ -141,6 +154,54 @@ class AdvancedSearchClassBase {
         asyncFetch: this.autocomplete({
           searchIndex: SearchIndex.TOPIC,
           entityField: EntityFields.SCHEMA_FIELD,
+        }),
+        useAsyncSearch: true,
+      },
+    },
+  };
+
+  /**
+   * Fields specific to API endpoints
+   */
+  apiEndpointQueryBuilderFields: Fields = {
+    'requestSchema.schemaFields.name.keyword': {
+      label: t('label.request-schema-field'),
+      type: 'select',
+      mainWidgetProps: this.mainWidgetProps,
+      fieldSettings: {
+        asyncFetch: this.autocomplete({
+          searchIndex: SearchIndex.API_ENDPOINT_INDEX,
+          entityField: EntityFields.REQUEST_SCHEMA_FIELD,
+        }),
+        useAsyncSearch: true,
+      },
+    },
+    'responseSchema.schemaFields.name.keyword': {
+      label: t('label.response-schema-field'),
+      type: 'select',
+      mainWidgetProps: this.mainWidgetProps,
+      fieldSettings: {
+        asyncFetch: this.autocomplete({
+          searchIndex: SearchIndex.API_ENDPOINT_INDEX,
+          entityField: EntityFields.RESPONSE_SCHEMA_FIELD,
+        }),
+        useAsyncSearch: true,
+      },
+    },
+  };
+
+  /**
+   * Fields specific to Glossary
+   */
+  glossaryQueryBuilderFields: Fields = {
+    status: {
+      label: t('label.status'),
+      type: 'select',
+      mainWidgetProps: this.mainWidgetProps,
+      fieldSettings: {
+        asyncFetch: this.autocomplete({
+          searchIndex: SearchIndex.GLOSSARY_TERM,
+          entityField: EntityFields.GLOSSARY_TERM_STATUS,
         }),
         useAsyncSearch: true,
       },
@@ -397,7 +458,7 @@ class AdvancedSearchClassBase {
         defaultValue: true,
       },
 
-      'owner.displayName.keyword': {
+      'owners.displayName.keyword': {
         label: t('label.owner'),
         type: 'select',
         mainWidgetProps: this.mainWidgetProps,
@@ -472,12 +533,18 @@ class AdvancedSearchClassBase {
       descriptionStatus: {
         label: t('label.description'),
         type: 'select',
+        operators: [
+          'select_equals',
+          'select_not_equals',
+          'is_null',
+          'is_not_null',
+        ],
         mainWidgetProps: this.mainWidgetProps,
         valueSources: ['value'],
         fieldSettings: {
           listValues: {
-            INCOMPLETE: 'Incomplete',
-            COMPLETE: 'Complete',
+            INCOMPLETE: t('label.incomplete'),
+            COMPLETE: t('label.complete'),
           },
         },
       },
@@ -500,6 +567,7 @@ class AdvancedSearchClassBase {
       [SearchIndex.CONTAINER]: this.containerQueryBuilderFields,
       [SearchIndex.SEARCH_INDEX]: this.searchIndexQueryBuilderFields,
       [SearchIndex.DASHBOARD_DATA_MODEL]: this.dataModelQueryBuilderFields,
+      [SearchIndex.API_ENDPOINT_INDEX]: this.apiEndpointQueryBuilderFields,
       [SearchIndex.ALL]: {
         ...this.tableQueryBuilderFields,
         ...this.pipelineQueryBuilderFields,
@@ -509,6 +577,19 @@ class AdvancedSearchClassBase {
         ...this.containerQueryBuilderFields,
         ...this.searchIndexQueryBuilderFields,
         ...this.dataModelQueryBuilderFields,
+        ...this.apiEndpointQueryBuilderFields,
+      },
+      [SearchIndex.DATA_ASSET]: {
+        ...this.tableQueryBuilderFields,
+        ...this.pipelineQueryBuilderFields,
+        ...this.dashboardQueryBuilderFields,
+        ...this.topicQueryBuilderFields,
+        ...this.mlModelQueryBuilderFields,
+        ...this.containerQueryBuilderFields,
+        ...this.searchIndexQueryBuilderFields,
+        ...this.dataModelQueryBuilderFields,
+        ...this.apiEndpointQueryBuilderFields,
+        ...this.glossaryQueryBuilderFields,
       },
     };
 
@@ -567,6 +648,7 @@ class AdvancedSearchClassBase {
     isExplorePage?: boolean
   ) => BasicConfig = (tierOptions, entitySearchIndex, isExplorePage) => {
     const searchIndexWithServices = [
+      SearchIndex.ALL,
       SearchIndex.TABLE,
       SearchIndex.DASHBOARD,
       SearchIndex.PIPELINE,
@@ -583,6 +665,9 @@ class AdvancedSearchClassBase {
       SearchIndex.ML_MODEL_SERVICE,
       SearchIndex.SEARCH_SERVICE,
       SearchIndex.STORAGE_SERVICE,
+      SearchIndex.API_SERVICE_INDEX,
+      SearchIndex.API_ENDPOINT_INDEX,
+      SearchIndex.API_COLLECTION_INDEX,
     ];
 
     const shouldAddServiceField =

@@ -77,10 +77,11 @@ import {
 
 export const ActivityFeedTab = ({
   fqn,
-  owner,
+  owners = [],
   columns,
   entityType,
   refetchFeed,
+  hasGlossaryReviewer,
   entityFeedTotalCount,
   isForFeedTab = true,
   onUpdateFeedCount,
@@ -419,6 +420,7 @@ export const ActivityFeedTab = ({
                   'font-medium': taskFilter === 'open',
                 }
               )}
+              data-testid="open-task"
               onClick={() => {
                 handleUpdateTaskFilter('open');
                 setActiveThread();
@@ -431,6 +433,7 @@ export const ActivityFeedTab = ({
               className={classNames('cursor-pointer d-flex items-center', {
                 'font-medium': taskFilter === 'close',
               })}
+              data-testid="closed-task"
               onClick={() => {
                 handleUpdateTaskFilter('close');
                 setActiveThread();
@@ -452,6 +455,7 @@ export const ActivityFeedTab = ({
           feedList={threads}
           isForFeedTab={isForFeedTab}
           isLoading={false}
+          selectedThread={selectedThread}
           showThread={false}
           onFeedClick={handleFeedClick}
         />
@@ -464,7 +468,8 @@ export const ActivityFeedTab = ({
           style={{ height: '2px' }}
         />
       </div>
-      <div className=" right-container">
+
+      <div className="right-container">
         {loader}
         {selectedThread &&
           !loading &&
@@ -475,6 +480,7 @@ export const ActivityFeedTab = ({
                   hideCloseIcon
                   className="p-x-md"
                   entityLink={selectedThread.about}
+                  feed={selectedThread}
                   threadType={selectedThread?.type ?? ThreadType.Conversation}
                   onCancel={noop}
                 />
@@ -502,7 +508,7 @@ export const ActivityFeedTab = ({
                   columns={columns}
                   entityType={EntityType.TABLE}
                   isForFeedTab={isForFeedTab}
-                  owner={owner}
+                  owners={owners}
                   taskThread={selectedThread}
                   onAfterClose={handleAfterTaskClose}
                   onUpdateEntityDetails={onUpdateEntityDetails}
@@ -510,8 +516,9 @@ export const ActivityFeedTab = ({
               ) : (
                 <TaskTab
                   entityType={isUserEntity ? entityTypeTask : entityType}
+                  hasGlossaryReviewer={hasGlossaryReviewer}
                   isForFeedTab={isForFeedTab}
-                  owner={owner}
+                  owners={owners}
                   taskThread={selectedThread}
                   onAfterClose={handleAfterTaskClose}
                   onUpdateEntityDetails={onUpdateEntityDetails}

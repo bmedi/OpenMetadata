@@ -50,9 +50,16 @@ from metadata.generated.schema.metadataIngestion.databaseServiceMetadataPipeline
 from metadata.generated.schema.metadataIngestion.workflow import (
     Source as WorkflowSource,
 )
+from metadata.generated.schema.type.basic import (
+    EntityName,
+    FullyQualifiedEntityName,
+    Markdown,
+    SourceUrl,
+)
 from metadata.ingestion.api.models import Either
 from metadata.ingestion.connections.session import create_and_bind_thread_safe_session
 from metadata.ingestion.models.ometa_classification import OMetaTagAndClassification
+from metadata.ingestion.models.ometa_lineage import OMetaLineageRequest
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
 from metadata.ingestion.source.connections import get_connection
 from metadata.ingestion.source.database.database_service import DatabaseServiceSource
@@ -104,7 +111,7 @@ class CommonDbSourceService(
         self.metadata = metadata
 
         # It will be one of the Unions. We don't know the specific type here.
-        self.service_connection = self.config.serviceConnection.__root__.config
+        self.service_connection = self.config.serviceConnection.root.config
 
         self.ssl_manager = None
         self.ssl_manager: SSLManager = check_ssl_and_init(self.service_connection)
@@ -182,12 +189,23 @@ class CommonDbSourceService(
         Prepare a database request and pass it to the sink
         """
 
+        description = (
+            Markdown(db_description)
+            if (db_description := self.get_database_description(database_name))
+            else None
+        )
+        source_url = (
+            SourceUrl(source_url)
+            if (source_url := self.get_source_url(database_name=database_name))
+            else None
+        )
+
         yield Either(
             right=CreateDatabaseRequest(
-                name=database_name,
-                service=self.context.get().database_service,
-                description=self.get_database_description(database_name),
-                sourceUrl=self.get_source_url(database_name=database_name),
+                name=EntityName(database_name),
+                service=FullyQualifiedEntityName(self.context.get().database_service),
+                description=description,
+                sourceUrl=source_url,
                 tags=self.get_database_tag_labels(database_name=database_name),
             )
         )
@@ -214,20 +232,30 @@ class CommonDbSourceService(
         Prepare a database schema request and pass it to the sink
         """
 
+        description = (
+            Markdown(db_description)
+            if (db_description := self.get_schema_description(schema_name))
+            else None
+        )
+        source_url = (
+            SourceUrl(source_url)
+            if (source_url := self.get_source_url(database_name=schema_name))
+            else None
+        )
+
         yield Either(
             right=CreateDatabaseSchemaRequest(
-                name=schema_name,
-                database=fqn.build(
-                    metadata=self.metadata,
-                    entity_type=Database,
-                    service_name=self.context.get().database_service,
-                    database_name=self.context.get().database,
+                name=EntityName(schema_name),
+                database=FullyQualifiedEntityName(
+                    fqn.build(
+                        metadata=self.metadata,
+                        entity_type=Database,
+                        service_name=self.context.get().database_service,
+                        database_name=self.context.get().database,
+                    )
                 ),
-                description=self.get_schema_description(schema_name),
-                sourceUrl=self.get_source_url(
-                    database_name=self.context.get().database,
-                    schema_name=schema_name,
-                ),
+                description=description,
+                sourceUrl=source_url,
                 tags=self.get_schema_tag_labels(schema_name=schema_name),
             )
         )
@@ -360,7 +388,11 @@ class CommonDbSourceService(
 
     @calculate_execution_time()
     def get_schema_definition(
-        self, table_type: str, table_name: str, schema_name: str, inspector: Inspector
+        self,
+        table_type: TableType,
+        table_name: str,
+        schema_name: str,
+        inspector: Inspector,
     ) -> Optional[str]:
         """
         Get the DDL statement or View Definition for a table
@@ -438,7 +470,7 @@ class CommonDbSourceService(
 
     @calculate_execution_time_generator()
     def yield_table(
-        self, table_name_and_type: Tuple[str, str]
+        self, table_name_and_type: Tuple[str, TableType]
     ) -> Iterable[Either[CreateTableRequest]]:
         """
         From topology.
@@ -458,32 +490,48 @@ class CommonDbSourceService(
                 inspector=self.inspector,
             )
 
-            schema_definition = self.get_schema_definition(
-                table_type=table_type,
-                table_name=table_name,
-                schema_name=schema_name,
-                inspector=self.inspector,
+            schema_definition = (
+                self.get_schema_definition(
+                    table_type=table_type,
+                    table_name=table_name,
+                    schema_name=schema_name,
+                    inspector=self.inspector,
+                )
+                if self.source_config.includeDDL
+                else None
             )
+
             table_constraints = self.update_table_constraints(
                 table_constraints, foreign_columns
             )
+
+            description = (
+                Markdown(db_description)
+                if (
+                    db_description := self.get_table_description(
+                        schema_name=schema_name,
+                        table_name=table_name,
+                        inspector=self.inspector,
+                    )
+                )
+                else None
+            )
+
             table_request = CreateTableRequest(
-                name=table_name,
+                name=EntityName(table_name),
                 tableType=table_type,
-                description=self.get_table_description(
-                    schema_name=schema_name,
-                    table_name=table_name,
-                    inspector=self.inspector,
-                ),
+                description=description,
                 columns=columns,
                 tableConstraints=table_constraints,
                 schemaDefinition=schema_definition,
-                databaseSchema=fqn.build(
-                    metadata=self.metadata,
-                    entity_type=DatabaseSchema,
-                    service_name=self.context.get().database_service,
-                    database_name=self.context.get().database,
-                    schema_name=schema_name,
+                databaseSchema=FullyQualifiedEntityName(
+                    fqn.build(
+                        metadata=self.metadata,
+                        entity_type=DatabaseSchema,
+                        service_name=self.context.get().database_service,
+                        database_name=self.context.get().database,
+                        schema_name=schema_name,
+                    )
                 ),
                 tags=self.get_tag_labels(
                     table_name=table_name
@@ -494,7 +542,7 @@ class CommonDbSourceService(
                     database_name=self.context.get().database,
                     table_type=table_type,
                 ),
-                owner=self.get_owner_ref(table_name=table_name),
+                owners=self.get_owner_ref(table_name=table_name),
             )
 
             is_partitioned, partition_details = self.get_table_partition_details(
@@ -510,19 +558,20 @@ class CommonDbSourceService(
             self.register_record(table_request=table_request)
 
             # Flag view as visited
-            if table_type == TableType.View or schema_definition:
-                table_view = TableView.parse_obj(
-                    {
-                        "table_name": table_name,
-                        "schema_name": schema_name,
-                        "db_name": self.context.get().database,
-                        "view_definition": schema_definition,
-                    }
+            if table_type == TableType.View and schema_definition:
+                table_view = TableView(
+                    table_name=table_name,
+                    schema_name=schema_name,
+                    db_name=self.context.get().database,
+                    view_definition=schema_definition,
                 )
                 self.context.get_global().table_views.append(table_view)
 
         except Exception as exc:
-            error = f"Unexpected exception to yield table [{table_name}]: {exc}"
+            error = (
+                f"Unexpected exception to yield table "
+                f"(database=[{self.context.get().database}], schema=[{schema_name}], table=[{table_name}]): {exc}"
+            )
             yield Either(
                 left=StackTraceError(
                     name=table_name, error=error, stackTrace=traceback.format_exc()
@@ -530,18 +579,27 @@ class CommonDbSourceService(
             )
 
     @calculate_execution_time_generator()
-    def yield_view_lineage(self) -> Iterable[Either[AddLineageRequest]]:
+    def yield_view_lineage(self) -> Iterable[Either[OMetaLineageRequest]]:
         logger.info("Processing Lineage for Views")
         for view in [
             v for v in self.context.get().table_views if v.view_definition is not None
         ]:
-            yield from get_view_lineage(
+            for lineage in get_view_lineage(
                 view=view,
                 metadata=self.metadata,
                 service_name=self.context.get().database_service,
                 connection_type=self.service_connection.type.value,
                 timeout_seconds=self.source_config.queryParsingTimeoutLimit,
-            )
+            ):
+                if lineage.right is not None:
+                    yield Either(
+                        right=OMetaLineageRequest(
+                            lineage_request=lineage.right,
+                            override_lineage=self.source_config.overrideViewLineage,
+                        )
+                    )
+                else:
+                    yield lineage
 
     def _get_foreign_constraints(self, foreign_columns) -> List[TableConstraint]:
         """
@@ -571,7 +629,7 @@ class CommonDbSourceService(
                         referred_table_fqn, referred_column, quote=False
                     )
                     if col_fqn:
-                        referred_column_fqns.append(col_fqn)
+                        referred_column_fqns.append(FullyQualifiedEntityName(col_fqn))
             else:
                 # do not build partial foreign constraint. It will updated in next run.
                 continue

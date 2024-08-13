@@ -41,8 +41,13 @@ import {
 import { getEntityName } from '../../../utils/EntityUtils';
 import {
   convertGlossaryTermsToTreeOptions,
+  filterTreeNodeOptions,
   findGlossaryTermByFqn,
 } from '../../../utils/GlossaryUtils';
+import {
+  escapeESReservedCharacters,
+  getEncodedFqn,
+} from '../../../utils/StringsUtils';
 import { getTagDisplay, tagRender } from '../../../utils/TagsUtils';
 import { showErrorToast } from '../../../utils/ToastUtils';
 import { ModifiedGlossaryTerm } from '../../Glossary/GlossaryTermTab/GlossaryTermTab.interface';
@@ -59,6 +64,7 @@ const TreeAsyncSelectList: FC<Omit<AsyncSelectListProps, 'fetchOptions'>> = ({
   initialOptions,
   tagType,
   isSubmitLoading,
+  filterOptions = [],
   onCancel,
   ...props
 }) => {
@@ -73,11 +79,14 @@ const TreeAsyncSelectList: FC<Omit<AsyncSelectListProps, 'fetchOptions'>> = ({
   const form = Form.useFormInstance();
 
   const fetchGlossaryListInternal = async () => {
+    setIsLoading(true);
     try {
       const { data } = await getGlossariesList({
         limit: PAGE_SIZE_LARGE,
       });
-      setGlossaries((prev) => [...prev, ...data]);
+      setGlossaries((prev) =>
+        filterTreeNodeOptions([...prev, ...data], filterOptions)
+      );
     } catch (error) {
       showErrorToast(error as AxiosError);
     } finally {
@@ -91,11 +100,12 @@ const TreeAsyncSelectList: FC<Omit<AsyncSelectListProps, 'fetchOptions'>> = ({
 
   const dropdownRender = (menu: React.ReactElement) => (
     <>
-      {menu}
+      {isLoading ? <Loader size="small" /> : menu}
       <Space className="p-sm p-b-xss p-l-xs custom-dropdown-render" size={8}>
         <Button
           className="update-btn"
           data-testid="saveAssociatedTag"
+          disabled={isEmpty(glossaries)}
           htmlType="submit"
           loading={isSubmitLoading}
           size="small"
@@ -181,7 +191,13 @@ const TreeAsyncSelectList: FC<Omit<AsyncSelectListProps, 'fetchOptions'>> = ({
       value: string;
     }[]
   ) => {
+    const lastSelectedMap = new Map(
+      selectedTagsRef.current.map((tag) => [tag.value, tag])
+    );
     const selectedValues = values.map(({ value }) => {
+      if (lastSelectedMap.has(value)) {
+        return lastSelectedMap.get(value) as SelectOption;
+      }
       const initialData = findGlossaryTermByFqn(
         [
           ...glossaries,
@@ -211,34 +227,35 @@ const TreeAsyncSelectList: FC<Omit<AsyncSelectListProps, 'fetchOptions'>> = ({
     if (!params?.glossary) {
       return;
     }
-    setIsLoading(true);
     try {
       const results = await queryGlossaryTerms(params.glossary);
 
       const activeGlossary = results[0];
 
       setGlossaries((prev) =>
-        prev.map((glossary) => ({
-          ...glossary,
-          children: get(
-            glossary.id === activeGlossary?.id ? activeGlossary : glossary,
-            'children',
-            []
-          ),
-        }))
+        filterTreeNodeOptions(
+          prev.map((glossary) => ({
+            ...glossary,
+            children: get(
+              glossary.id === activeGlossary?.id ? activeGlossary : glossary,
+              'children',
+              []
+            ),
+          })),
+          filterOptions
+        )
       );
     } catch (error) {
       showErrorToast(error as AxiosError);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const onSearch = debounce(async (value: string) => {
     if (value) {
-      const results: Glossary[] = await searchGlossaryTerms(value);
+      const encodedValue = getEncodedFqn(escapeESReservedCharacters(value));
+      const results: Glossary[] = await searchGlossaryTerms(encodedValue);
 
-      setSearchOptions(results);
+      setSearchOptions(filterTreeNodeOptions(results, filterOptions));
       setExpandedRowKeys(
         results.map((result) => result.fullyQualifiedName as string)
       );
@@ -275,14 +292,13 @@ const TreeAsyncSelectList: FC<Omit<AsyncSelectListProps, 'fetchOptions'>> = ({
       dropdownRender={dropdownRender}
       dropdownStyle={{ width: 300 }}
       filterTreeNode={false}
-      loadData={({ id, value }) => {
+      loadData={({ id, name }) => {
         if (expandableKeys.current.includes(id)) {
-          return fetchGlossaryTerm({ glossary: value as string });
+          return fetchGlossaryTerm({ glossary: name as string });
         }
 
         return Promise.resolve();
       }}
-      notFoundContent={isLoading ? <Loader size="small" /> : null}
       showCheckedStrategy={TreeSelect.SHOW_ALL}
       style={{ width: '100%' }}
       switcherIcon={

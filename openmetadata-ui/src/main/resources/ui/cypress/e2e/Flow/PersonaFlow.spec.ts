@@ -17,6 +17,7 @@ import {
   toastNotification,
   verifyResponseStatusCode,
 } from '../../common/common';
+import { validateFormNameFieldInput } from '../../common/Utils/Form';
 import { getToken } from '../../common/Utils/LocalStorage';
 import { DELETE_TERM } from '../../constants/constants';
 import { PERSONA_DETAILS, USER_DETAILS } from '../../constants/EntityConstant';
@@ -41,7 +42,12 @@ const updatePersonaDisplayName = (displayName) => {
 };
 
 describe('Persona operations', { tags: 'Settings' }, () => {
-  const user = {};
+  const user = {
+    details: {
+      id: '',
+      name: '',
+    },
+  };
   const userSearchText = `${USER_DETAILS.firstName}${USER_DETAILS.lastName}`;
   before(() => {
     cy.login();
@@ -85,17 +91,39 @@ describe('Persona operations', { tags: 'Settings' }, () => {
   });
 
   it('Persona creation should work properly', () => {
+    interceptURL(
+      'GET',
+      '/api/v1/users?limit=25&isBot=false',
+      'getInitialUsers'
+    );
+
+    interceptURL(
+      'GET',
+      '/api/v1/search/query?q=***%20AND%20isBot:false&from=0&size=25&index=user_search_index',
+      'getUserSearch'
+    );
+
     cy.get('[data-testid="add-persona-button"]').scrollIntoView().click();
     cy.get('[data-testid="name"]').clear().type(PERSONA_DETAILS.name);
+    validateFormNameFieldInput({
+      value: PERSONA_DETAILS.name,
+      fieldName: 'Name',
+      fieldSelector: '[data-testid="name"]',
+      errorDivSelector: '#name_help',
+    });
     cy.get('[data-testid="displayName"]')
       .clear()
       .type(PERSONA_DETAILS.displayName);
     cy.get(descriptionBox).type(PERSONA_DETAILS.description);
     cy.get('[data-testid="add-users"]').scrollIntoView().click();
 
+    verifyResponseStatusCode('@getInitialUsers', 200);
+
     cy.get('[data-testid="searchbar"]').type(userSearchText);
 
-    cy.get(`[title="${userSearchText}"] .ant-checkbox-input`).check();
+    verifyResponseStatusCode('@getUserSearch', 200);
+
+    cy.get(`.ant-popover [title="${userSearchText}"]`).click();
     cy.get('[data-testid="selectable-list-update-btn"]')
       .scrollIntoView()
       .click();

@@ -14,6 +14,7 @@
 import { t } from 'i18next';
 import { capitalize, map, startCase, values } from 'lodash';
 import { DateFilterType, StepperStepType } from 'Models';
+import { TestCaseSearchParams } from '../components/DataQuality/DataQuality.interface';
 import { CSMode } from '../enums/codemirror.enum';
 import { DMLOperationType } from '../generated/api/data/createTableProfile';
 import {
@@ -113,11 +114,11 @@ export const PROFILER_FILTER_RANGE: DateFilterType = {
 };
 
 export const DEFAULT_SELECTED_RANGE = {
-  key: 'last3days',
+  key: 'last7Days',
   title: t('label.last-number-of-days', {
-    numberOfDays: 3,
+    numberOfDays: 7,
   }),
-  days: 3,
+  days: 7,
 };
 
 export const DEFAULT_RANGE_DATA = {
@@ -417,12 +418,15 @@ export const TEST_CASE_STATUS_OPTION = [
   })),
 ];
 
-export const TEST_CASE_FILTERS = {
+export const TEST_CASE_FILTERS: Record<string, keyof TestCaseSearchParams> = {
   table: 'tableFqn',
   platform: 'testPlatforms',
   type: 'testCaseType',
   status: 'testCaseStatus',
   lastRun: 'lastRunRange',
+  tier: 'tier',
+  tags: 'tags',
+  service: 'serviceName',
 };
 
 export const TEST_CASE_PLATFORM_OPTION = values(TestPlatform).map((value) => ({

@@ -23,13 +23,13 @@ import { ReactComponent as MSTeamsIcon } from '../../assets/svg/ms-teams.svg';
 import { ReactComponent as SlackIcon } from '../../assets/svg/slack.svg';
 import { ReactComponent as WebhookIcon } from '../../assets/svg/webhook.svg';
 import { AsyncSelect } from '../../components/common/AsyncSelect/AsyncSelect';
+import { InlineAlertProps } from '../../components/common/InlineAlert/InlineAlert.interface';
 import {
   DESTINATION_DROPDOWN_TABS,
   DESTINATION_SOURCE_ITEMS,
   DESTINATION_TYPE_BASED_PLACEHOLDERS,
   EXTERNAL_CATEGORY_OPTIONS,
 } from '../../constants/Alerts.constants';
-import { HTTP_STATUS_CODE } from '../../constants/Auth.constants';
 import { PAGE_SIZE_LARGE } from '../../constants/constants';
 import { SearchIndex } from '../../enums/search.enum';
 import { StatusType } from '../../generated/entity/data/pipeline';
@@ -47,10 +47,10 @@ import { EventType } from '../../generated/type/changeEvent';
 import TeamAndUserSelectItem from '../../pages/AddObservabilityPage/DestinationFormItem/TeamAndUserSelectItem/TeamAndUserSelectItem';
 import { searchData } from '../../rest/miscAPI';
 import { getEntityName, getEntityNameLabel } from '../EntityUtils';
+import { handleEntityCreationError } from '../formUtils';
 import { getConfigFieldFromDestinationType } from '../ObservabilityUtils';
 import searchClassBase from '../SearchClassBase';
-import { getEntityIcon } from '../TableUtils';
-import { showErrorToast, showSuccessToast } from '../ToastUtils';
+import { showSuccessToast } from '../ToastUtils';
 
 export const getAlertsActionTypeIcon = (type?: SubscriptionType) => {
   switch (type) {
@@ -753,6 +753,7 @@ export const handleAlertSave = async ({
   createAlertAPI,
   updateAlertAPI,
   afterSaveAction,
+  setInlineAlertDetails,
 }: {
   data: CreateEventSubscription;
   createAlertAPI: (
@@ -762,6 +763,7 @@ export const handleAlertSave = async ({
     alert: CreateEventSubscription
   ) => Promise<EventSubscription>;
   afterSaveAction: () => void;
+  setInlineAlertDetails: (alertDetails?: InlineAlertProps | undefined) => void;
   fqn?: string;
 }) => {
   try {
@@ -779,7 +781,7 @@ export const handleAlertSave = async ({
         enabled,
         input,
         name,
-        owner,
+        owners,
         provider,
         resources,
         trigger,
@@ -793,7 +795,7 @@ export const handleAlertSave = async ({
         enabled,
         input,
         name,
-        owner,
+        owners,
         provider,
         resources,
         trigger,
@@ -814,22 +816,15 @@ export const handleAlertSave = async ({
     );
     afterSaveAction();
   } catch (error) {
-    if ((error as AxiosError).response?.status === HTTP_STATUS_CODE.CONFLICT) {
-      showErrorToast(
-        t('server.entity-already-exist', {
-          entity: t('label.alert'),
-          entityPlural: t('label.alert-lowercase-plural'),
-          name: data.name,
-        })
-      );
-    } else {
-      showErrorToast(
-        error as AxiosError,
-        t(`server.${'entity-creation-error'}`, {
-          entity: t('label.alert-lowercase'),
-        })
-      );
-    }
+    handleEntityCreationError({
+      error: error as AxiosError,
+      entity: t('label.alert'),
+      entityLowercase: t('label.alert-lowercase'),
+      entityLowercasePlural: t('label.alert-lowercase-plural'),
+      setInlineAlertDetails,
+      name: data.name,
+      defaultErrorType: 'create',
+    });
   }
 };
 
@@ -883,17 +878,21 @@ export const getSourceOptionsFromResourceList = (
   showCheckbox?: boolean,
   selectedResource?: string[]
 ) =>
-  resources.map((resource) => ({
-    label: (
-      <div
-        className="d-flex items-center gap-2"
-        data-testid={`${resource}-option`}>
-        {showCheckbox && (
-          <Checkbox checked={selectedResource?.includes(resource)} />
-        )}
-        <div className="d-flex h-4 w-4">{getEntityIcon(resource ?? '')}</div>
-        <span>{getEntityNameLabel(resource ?? '')}</span>
-      </div>
-    ),
-    value: resource ?? '',
-  }));
+  resources.map((resource) => {
+    const sourceIcon = searchClassBase.getEntityIcon(resource ?? '');
+
+    return {
+      label: (
+        <div
+          className="d-flex items-center gap-2"
+          data-testid={`${resource}-option`}>
+          {showCheckbox && (
+            <Checkbox checked={selectedResource?.includes(resource)} />
+          )}
+          {sourceIcon && <div className="d-flex h-4 w-4">{sourceIcon}</div>}
+          <span>{getEntityNameLabel(resource ?? '')}</span>
+        </div>
+      ),
+      value: resource ?? '',
+    };
+  });

@@ -191,6 +191,7 @@ export const ES_RESERVED_CHARACTERS: Record<string, string> = {
   '+': '\\+',
   '-': '\\-',
   '=': '\\=',
+  '&': '\\&',
   '&&': '\\&&',
   '||': '\\||',
   '>': '\\>',
@@ -213,7 +214,7 @@ export const ES_RESERVED_CHARACTERS: Record<string, string> = {
 };
 
 export const escapeESReservedCharacters = (text?: string) => {
-  const reUnescapedHtml = /[+-=&&||><!(){}^"~*?:/]/g;
+  const reUnescapedHtml = /[\\[\]#+=&|><!(){}^"~*?:/-]/g;
   const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
 
   const getReplacedChar = (char: string) => {
@@ -308,6 +309,9 @@ export const jsonToCSV = <T extends JSONRecord>(
     const row = headers
       .map((header) => {
         const value = obj[header.field];
+        if (!value) {
+          return '""';
+        }
         const escaped =
           typeof value === 'string'
             ? value.replace(/"/g, '\\"')

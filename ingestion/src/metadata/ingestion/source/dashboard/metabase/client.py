@@ -30,6 +30,7 @@ from metadata.ingestion.source.dashboard.metabase.models import (
     MetabaseDashboardList,
     MetabaseDatabase,
     MetabaseTable,
+    MetabaseUser,
 )
 from metadata.utils.constants import AUTHORIZATION_HEADER, NO_ACCESS_TOKEN
 from metadata.utils.logger import ingestion_logger
@@ -55,7 +56,7 @@ class MetabaseClient:
             if self.config.password:
                 params[PASSWORD_HEADER] = self.config.password.get_secret_value()
             self.resp = requests.post(
-                f"{self.config.hostPort}/{API_VERSION}/session/",
+                f"{self.config.hostPort}{API_VERSION}/session/",
                 data=json.dumps(params),
                 headers=SESSION_HEADERS,
                 timeout=DEFAULT_TIMEOUT,
@@ -77,7 +78,7 @@ class MetabaseClient:
         self.config = config
         session_token = self._get_metabase_session()
         client_config: ClientConfig = ClientConfig(
-            base_url=self.config.hostPort,
+            base_url=str(self.config.hostPort)[:-1],  # remove trailing slash
             api_version=API_VERSION,
             auth_header=AUTHORIZATION_HEADER,
             auth_token=lambda: (NO_ACCESS_TOKEN, 0),
@@ -193,4 +194,19 @@ class MetabaseClient:
         except Exception:
             logger.debug(traceback.format_exc())
             logger.warning(f"Failed to fetch the table with id: {table_id}")
+        return None
+
+    def get_user_details(self, user_id: str) -> Optional[MetabaseUser]:
+        """
+        Get User using user ID
+        """
+        if not user_id:
+            return None  # don't call api if table_id is None
+        try:
+            resp_table = self.client.get(f"/user/{user_id}")
+            if resp_table:
+                return MetabaseUser(**resp_table)
+        except Exception:
+            logger.debug(traceback.format_exc())
+            logger.warning(f"Failed to fetch the user with id: {user_id}")
         return None

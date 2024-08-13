@@ -33,14 +33,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.openmetadata.common.utils.CommonUtil;
-import org.openmetadata.schema.api.configuration.LoginConfiguration;
+import org.openmetadata.schema.api.teams.CreateUser;
 import org.openmetadata.schema.auth.LdapConfiguration;
 import org.openmetadata.schema.auth.LoginRequest;
 import org.openmetadata.schema.auth.RefreshToken;
 import org.openmetadata.schema.entity.teams.Role;
 import org.openmetadata.schema.entity.teams.User;
 import org.openmetadata.schema.services.connections.metadata.AuthProvider;
-import org.openmetadata.schema.settings.SettingsType;
 import org.openmetadata.schema.type.EntityReference;
 import org.openmetadata.service.Entity;
 import org.openmetadata.service.OpenMetadataApplicationConfig;
@@ -51,8 +50,8 @@ import org.openmetadata.service.exception.UnhandledServerException;
 import org.openmetadata.service.jdbi3.RoleRepository;
 import org.openmetadata.service.jdbi3.TokenRepository;
 import org.openmetadata.service.jdbi3.UserRepository;
-import org.openmetadata.service.resources.settings.SettingsCache;
 import org.openmetadata.service.security.AuthenticationException;
+import org.openmetadata.service.security.SecurityUtil;
 import org.openmetadata.service.util.EmailUtil;
 import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.LdapUtil;
@@ -70,7 +69,6 @@ public class LdapAuthenticator implements AuthenticatorHandler {
   private LoginAttemptCache loginAttemptCache;
   private LdapConfiguration ldapConfiguration;
   private LDAPConnectionPool ldapLookupConnectionPool;
-  private LoginConfiguration loginConfiguration;
 
   @Override
   public void init(OpenMetadataApplicationConfig config) {
@@ -86,8 +84,6 @@ public class LdapAuthenticator implements AuthenticatorHandler {
     this.tokenRepository = Entity.getTokenRepository();
     this.ldapConfiguration = config.getAuthenticationConfiguration().getLdapConfiguration();
     this.loginAttemptCache = new LoginAttemptCache();
-    this.loginConfiguration =
-        SettingsCache.getSetting(SettingsType.LOGIN_CONFIGURATION, LoginConfiguration.class);
   }
 
   private LDAPConnectionPool getLdapConnectionPool(LdapConfiguration ldapConfiguration) {
@@ -132,7 +128,7 @@ public class LdapAuthenticator implements AuthenticatorHandler {
     User omUser =
         checkAndCreateUser(
             storedUser.getEmail(), storedUser.getFullyQualifiedName(), storedUser.getName());
-    return getJwtResponse(omUser, loginConfiguration.getJwtTokenExpiryTime());
+    return getJwtResponse(omUser, SecurityUtil.getLoginConfiguration().getJwtTokenExpiryTime());
   }
 
   /**
@@ -177,13 +173,13 @@ public class LdapAuthenticator implements AuthenticatorHandler {
       throws TemplateException, IOException {
     loginAttemptCache.recordFailedLogin(providedIdentity);
     int failedLoginAttempt = loginAttemptCache.getUserFailedLoginCount(providedIdentity);
-    if (failedLoginAttempt == loginConfiguration.getMaxLoginFailAttempts()) {
+    if (failedLoginAttempt == SecurityUtil.getLoginConfiguration().getMaxLoginFailAttempts()) {
       EmailUtil.sendAccountStatus(
           storedUser,
           "Multiple Failed Login Attempts.",
           String.format(
               "Someone is tried accessing your account. Login is Blocked for %s seconds.",
-              loginConfiguration.getAccessBlockTime()));
+              SecurityUtil.getLoginConfiguration().getAccessBlockTime()));
     }
   }
 
@@ -254,31 +250,18 @@ public class LdapAuthenticator implements AuthenticatorHandler {
 
   private User getUserForLdap(String email) {
     String userName = email.split("@")[0];
-    return new User()
-        .withId(UUID.randomUUID())
-        .withName(userName)
-        .withFullyQualifiedName(userName)
-        .withEmail(email)
-        .withIsBot(false)
-        .withUpdatedBy(userName)
-        .withUpdatedAt(System.currentTimeMillis())
+    return UserUtil.getUser(
+            userName, new CreateUser().withName(userName).withEmail(email).withIsBot(false))
         .withIsEmailVerified(false)
         .withAuthenticationMechanism(null);
   }
 
   private User getUserForLdap(String email, String userName, String userDn) {
     User user =
-        new User()
-            .withId(UUID.randomUUID())
-            .withName(userName)
-            .withFullyQualifiedName(userName)
-            .withEmail(email)
-            .withIsBot(false)
-            .withUpdatedBy(userName)
-            .withUpdatedAt(System.currentTimeMillis())
+        UserUtil.getUser(
+                userName, new CreateUser().withName(userName).withEmail(email).withIsBot(false))
             .withIsEmailVerified(false)
             .withAuthenticationMechanism(null);
-
     try {
       getRoleForLdap(user, userDn, false);
     } catch (LDAPException | JsonProcessingException e) {

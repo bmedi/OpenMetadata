@@ -19,6 +19,7 @@ import { isEmpty } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useHistory } from 'react-router-dom';
+import { getWeekCron } from '../../components/common/CronEditor/CronEditor.constant';
 import ErrorPlaceHolder from '../../components/common/ErrorWithPlaceholder/ErrorPlaceHolder';
 import FormBuilder from '../../components/common/FormBuilder/FormBuilder';
 import Loader from '../../components/common/Loader/Loader';
@@ -30,6 +31,8 @@ import AppInstallVerifyCard from '../../components/Settings/Applications/AppInst
 import IngestionStepper from '../../components/Settings/Services/Ingestion/IngestionStepper/IngestionStepper.component';
 import { STEPS_FOR_APP_INSTALL } from '../../constants/Applications.constant';
 import { GlobalSettingOptions } from '../../constants/GlobalSettings.constants';
+import { useLimitStore } from '../../context/LimitsProvider/useLimitsStore';
+import { TabSpecificField } from '../../enums/entity.enum';
 import { ServiceCategory } from '../../enums/service.enum';
 import { AppType } from '../../generated/entity/applications/app';
 import {
@@ -47,6 +50,7 @@ import {
   getMarketPlaceAppDetailsPath,
   getSettingPath,
 } from '../../utils/RouterUtils';
+import { getScheduleOptionsFromSchedules } from '../../utils/ScheduleUtils';
 import { showErrorToast, showSuccessToast } from '../../utils/ToastUtils';
 import './app-install.less';
 
@@ -61,6 +65,12 @@ const AppInstall = () => {
   const [appConfiguration, setAppConfiguration] = useState();
   const [jsonSchema, setJsonSchema] = useState<RJSFSchema>();
   const UiSchema = applicationSchemaClassBase.getJSONUISchema();
+  const { config, getResourceLimit } = useLimitStore();
+
+  const { pipelineSchedules } =
+    config?.limits?.config.featureLimits.find(
+      (feature) => feature.name === 'app'
+    ) ?? {};
 
   const stepperList = useMemo(
     () =>
@@ -74,27 +84,31 @@ const AppInstall = () => {
     let initialOptions;
 
     if (appData?.name === 'DataInsightsReportApplication') {
-      initialOptions = ['Week'];
+      initialOptions = ['week'];
     } else if (appData?.appType === AppType.External) {
-      initialOptions = ['Day'];
+      initialOptions = ['day'];
+    } else if (pipelineSchedules && !isEmpty(pipelineSchedules)) {
+      initialOptions = getScheduleOptionsFromSchedules(pipelineSchedules);
     }
 
     return {
       initialOptions,
       initialValue: {
-        repeatFrequency: getCronInitialValue(
-          appData?.appType ?? AppType.Internal,
-          appData?.name ?? ''
-        ),
+        repeatFrequency: config?.enable
+          ? getWeekCron({ hour: 0, min: 0, dow: 0 })
+          : getCronInitialValue(
+              appData?.appType ?? AppType.Internal,
+              appData?.name ?? ''
+            ),
       },
     };
-  }, [appData?.name, appData?.appType]);
+  }, [appData?.name, appData?.appType, pipelineSchedules, config?.enable]);
 
   const fetchAppDetails = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await getMarketPlaceApplicationByFqn(fqn, {
-        fields: 'owner',
+        fields: TabSpecificField.OWNERS,
       });
       setAppData(data);
 
@@ -135,6 +149,9 @@ const AppInstall = () => {
       await installApplication(data);
 
       showSuccessToast(t('message.app-installed-successfully'));
+
+      // Update current count when Create / Delete operation performed
+      await getResourceLimit('app', true, true);
 
       goToAppPage();
     } catch (error) {

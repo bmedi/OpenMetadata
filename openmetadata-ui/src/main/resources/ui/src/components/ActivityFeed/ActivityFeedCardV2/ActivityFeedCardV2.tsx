@@ -84,6 +84,7 @@ const ActivityFeedCardV2 = ({
           avatarType="outlined"
           name={post.from}
           size={isPost ? 28 : 30}
+          width={isPost ? '28' : '30'}
         />
       </div>
       <Row className="w-full" gutter={[0, 10]}>
@@ -101,6 +102,7 @@ const ActivityFeedCardV2 = ({
                 about={!isPost ? feed.about : undefined}
                 cardStyle={feed.cardStyle}
                 createdBy={post.from}
+                feed={feed}
                 fieldName={feed.feedInfo?.fieldName as EntityField}
                 fieldOperation={feed.fieldOperation}
                 isEntityFeed={isPost}

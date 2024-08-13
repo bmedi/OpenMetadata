@@ -38,16 +38,16 @@ const TableQueryRightPanel = ({
   permission,
 }: TableQueryRightPanelProps) => {
   const { t } = useTranslation();
-  const { EditAll, EditDescription, EditOwner, EditTags } = permission;
+  const { EditAll, EditDescription, EditOwners, EditTags } = permission;
 
   const [isEditDescription, setIsEditDescription] = useState(false);
 
-  const handleUpdateOwner = async (owner: Query['owner']) => {
+  const handleUpdateOwner = async (owners: Query['owners']) => {
     const updatedData = {
       ...query,
-      owner,
+      owners,
     };
-    await onQueryUpdate(updatedData, 'owner');
+    await onQueryUpdate(updatedData, 'owners');
   };
 
   const onDescriptionUpdate = async (description: string) => {
@@ -89,11 +89,14 @@ const TableQueryRightPanel = ({
                   {t('label.owner')}
                 </Typography.Text>
 
-                {(EditAll || EditOwner) && (
+                {(EditAll || EditOwners) && (
                   <UserTeamSelectableList
-                    hasPermission={EditAll || EditOwner}
-                    owner={query.owner}
-                    onUpdate={handleUpdateOwner}>
+                    hasPermission={EditAll || EditOwners}
+                    multiple={{ user: true, team: false }}
+                    owner={query.owners}
+                    onUpdate={(updatedUsers) =>
+                      handleUpdateOwner(updatedUsers)
+                    }>
                     <Tooltip
                       title={t('label.edit-entity', {
                         entity: t('label.owner-lowercase'),
@@ -109,7 +112,7 @@ const TableQueryRightPanel = ({
                   </UserTeamSelectableList>
                 )}
               </Space>
-              <OwnerLabel hasPermission={false} owner={query.owner} />
+              <OwnerLabel hasPermission={false} owners={query.owners} />
             </Space>
           </Col>
           <Col span={24}>

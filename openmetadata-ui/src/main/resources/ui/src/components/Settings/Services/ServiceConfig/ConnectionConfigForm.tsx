@@ -14,7 +14,7 @@
 import Form, { IChangeEvent } from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
 import { t } from 'i18next';
-import { cloneDeep, isEmpty, isNil } from 'lodash';
+import { cloneDeep, isEmpty, isNil, isUndefined } from 'lodash';
 import { LoadingState } from 'Models';
 import React, {
   Fragment,
@@ -27,12 +27,14 @@ import { ServiceCategory } from '../../../../enums/service.enum';
 import { MetadataServiceType } from '../../../../generated/api/services/createMetadataService';
 import { MlModelServiceType } from '../../../../generated/api/services/createMlModelService';
 import { StorageServiceType } from '../../../../generated/entity/data/container';
+import { APIServiceType } from '../../../../generated/entity/services/apiService';
 import { DashboardServiceType } from '../../../../generated/entity/services/dashboardService';
 import { DatabaseServiceType } from '../../../../generated/entity/services/databaseService';
 import { MessagingServiceType } from '../../../../generated/entity/services/messagingService';
 import { PipelineServiceType } from '../../../../generated/entity/services/pipelineService';
 import { SearchServiceType } from '../../../../generated/entity/services/searchService';
 import { useAirflowStatus } from '../../../../hooks/useAirflowStatus';
+import { useApplicationStore } from '../../../../hooks/useApplicationStore';
 import {
   ConfigData,
   ServicesType,
@@ -42,6 +44,7 @@ import { formatFormDataForSubmit } from '../../../../utils/JSONSchemaFormUtils';
 import serviceUtilClassBase from '../../../../utils/ServiceUtilClassBase';
 import AirflowMessageBanner from '../../../common/AirflowMessageBanner/AirflowMessageBanner';
 import FormBuilder from '../../../common/FormBuilder/FormBuilder';
+import InlineAlert from '../../../common/InlineAlert/InlineAlert';
 import TestConnection from '../../../common/TestConnection/TestConnection';
 
 interface Props {
@@ -72,6 +75,7 @@ const ConnectionConfigForm: FunctionComponent<Props> = ({
   const config = !isNil(data)
     ? ((data as ServicesType).connection?.config as ConfigData)
     : ({} as ConfigData);
+  const { inlineAlertDetails } = useApplicationStore();
 
   const formRef = useRef<Form<ConfigData>>(null);
 
@@ -178,6 +182,14 @@ const ConnectionConfigForm: FunctionComponent<Props> = ({
 
         break;
       }
+
+      case ServiceCategory.API_SERVICES: {
+        connSch = serviceUtilClassBase.getAPIServiceConfig(
+          serviceType as APIServiceType
+        );
+
+        break;
+      }
     }
 
     return (
@@ -222,6 +234,9 @@ const ConnectionConfigForm: FunctionComponent<Props> = ({
               onValidateFormRequiredFields={handleRequiredFieldsValidation}
             />
           )}
+        {!isUndefined(inlineAlertDetails) && (
+          <InlineAlert alertClassName="m-t-xs" {...inlineAlertDetails} />
+        )}
       </FormBuilder>
     );
   };

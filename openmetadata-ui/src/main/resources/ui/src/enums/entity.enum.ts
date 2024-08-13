@@ -68,6 +68,10 @@ export enum EntityType {
   WEB_ANALYTIC_USER_ACTIVITY_REPORT_DATA = 'webAnalyticUserActivityReportData',
   TEST_CASE_RESOLUTION_STATUS = 'test_case_resolution_status_search_index',
   EVENT_SUBSCRIPTION = 'eventsubscription',
+  LINEAGE_EDGE = 'lineageEdge',
+  API_SERVICE = 'apiService',
+  API_COLLECTION = 'apiCollection',
+  API_ENDPOINT = 'apiEndpoint',
 }
 
 export enum AssetsType {
@@ -103,13 +107,14 @@ export enum TabSpecificField {
   FOLLOWERS = 'followers',
   JOINS = 'joins',
   TAGS = 'tags',
-  OWNER = 'owner',
+  OWNERS = 'owners',
   DATAMODEL = 'dataModel',
   CHARTS = 'charts',
   TASKS = 'tasks',
   TABLE_QUERIES = 'tableQueries',
   TESTS = 'tests',
   PIPELINE_STATUS = 'pipelineStatus',
+  PIPELINE_STATUSES = 'pipelineStatuses',
   DASHBOARD = 'dashboard',
   TABLE_CONSTRAINTS = 'tableConstraints',
   EXTENSION = 'extension',
@@ -121,7 +126,44 @@ export enum TabSpecificField {
   FIELDS = 'fields',
   VOTES = 'votes',
   DOMAIN = 'domain',
+  DOMAINS = 'domains',
   DATA_PRODUCTS = 'dataProducts',
+  REVIEWERS = 'reviewers',
+  PIPELINES = 'pipelines',
+  PROFILE = 'profile',
+  TEAMS = 'teams',
+  USERS = 'users',
+  ROLES = 'roles',
+  PERSONAS = 'personas',
+  ASSETS = 'assets',
+  EXPERTS = 'experts',
+  DEFAULT_PERSONA = 'defaultPersona',
+  USAGE_COUNT = 'usageCount',
+  PARENT = 'parent',
+  PARENTS = 'parents',
+  CHILDREN = 'children',
+  CUSTOM_METRICS = 'customMetrics',
+  TEST_CASE_RESULT = 'testCaseResult',
+  INCIDENT_ID = 'incidentId',
+  QUERY_USED_IN = 'queryUsedIn',
+  TEST_DEFINITION = 'testDefinition',
+  SUMMARY = 'summary',
+  RELATED_TERMS = 'relatedTerms',
+  FOLLOWS = 'follows',
+  OWNS = 'owns',
+  DATA_INSIGHT_CHART = 'dataInsightChart',
+  POLICIES = 'policies',
+  DEFAULT_ROLES = 'defaultRoles',
+  TERM_COUNT = 'termCount',
+  USER_COUNT = 'userCount',
+  CHILDREN_COUNT = 'childrenCount',
+  START_DATE = 'startDate',
+  END_DATE = 'endDate',
+  TARGET_DEFINITION = 'targetDefinition',
+  TARGET_VALUE = 'targetValue',
+  METRIC_TYPE = 'metricType',
+  CUSTOM_PROPERTIES = 'customProperties',
+  LOCATION = 'location',
 }
 
 export enum FqnPart {
@@ -134,6 +176,7 @@ export enum FqnPart {
   Topic,
   SearchIndexField,
   TestCase,
+  ApiEndpoint,
 }
 
 export enum EntityTabs {
@@ -165,6 +208,8 @@ export enum EntityTabs {
   SEARCH_INDEX_SETTINGS = 'search-index-settings',
   STORED_PROCEDURE = 'stored_procedure',
   CODE = 'code',
+  API_COLLECTION = 'apiCollection',
+  API_ENDPOINT = 'apiEndpoint',
 }
 
 export enum EntityAction {

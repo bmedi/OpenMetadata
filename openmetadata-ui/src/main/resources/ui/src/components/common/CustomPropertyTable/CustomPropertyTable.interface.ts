@@ -12,8 +12,11 @@
  */
 
 import { EntityType } from '../../../enums/entity.enum';
+import { APICollection } from '../../../generated/entity/data/apiCollection';
+import { APIEndpoint } from '../../../generated/entity/data/apiEndpoint';
 import { Container } from '../../../generated/entity/data/container';
 import { Dashboard } from '../../../generated/entity/data/dashboard';
+import { DashboardDataModel } from '../../../generated/entity/data/dashboardDataModel';
 import { Database } from '../../../generated/entity/data/database';
 import { DatabaseSchema } from '../../../generated/entity/data/databaseSchema';
 import { GlossaryTerm } from '../../../generated/entity/data/glossaryTerm';
@@ -38,6 +41,9 @@ export type ExtentionEntities = {
   [EntityType.GLOSSARY_TERM]: GlossaryTerm;
   [EntityType.DATABASE]: Database;
   [EntityType.DATABASE_SCHEMA]: DatabaseSchema;
+  [EntityType.DASHBOARD_DATA_MODEL]: DashboardDataModel;
+  [EntityType.API_COLLECTION]: APICollection;
+  [EntityType.API_ENDPOINT]: APIEndpoint;
 };
 
 export type ExtentionEntitiesKeys = keyof ExtentionEntities;

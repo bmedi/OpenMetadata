@@ -144,10 +144,13 @@ export const CustomEdge = ({
       isStrokeNeeded = isColumnHighlighted;
     }
 
+    const opacity = tracedNodes.length === 0 || isStrokeNeeded ? 1 : 0.25;
+
     return {
       ...style,
       ...{
         stroke: isStrokeNeeded ? theme.primaryColor : undefined,
+        opacity,
       },
     };
   }, [style, tracedNodes, edge, isColumnHighlighted, isColumnLineage]);
@@ -157,8 +160,7 @@ export const CustomEdge = ({
     targetType: EntityType
   ) => {
     return (
-      [EntityType.TABLE, EntityType.TOPIC].indexOf(sourceType) > -1 &&
-      [EntityType.TABLE, EntityType.TOPIC].indexOf(targetType) > -1
+      sourceType !== EntityType.PIPELINE && targetType !== EntityType.PIPELINE
     );
   };
 
@@ -243,7 +245,6 @@ export const CustomEdge = ({
             />
           ) : (
             <EntityPopOverCard
-              defaultOpen={isPipelineRootNode}
               entityFQN={pipeline?.fullyQualifiedName}
               entityType={pipelineEntityType}
               extraInfo={

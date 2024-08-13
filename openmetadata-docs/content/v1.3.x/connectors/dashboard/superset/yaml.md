@@ -136,7 +136,7 @@ You can use Postgres Connection when you have SSO enabled and your Superset is b
 
 {% codeBlock fileName="filename.yaml" %}
 
-```yaml
+```yaml {% isCodeBlock=true %}
 source:
   type: superset
   serviceName: local_superset
@@ -145,7 +145,7 @@ source:
       type: Superset
 ```
 ```yaml {% srNumber=1 %}
-      hostPort: http://localhost:8080
+      hostPort: http://localhost:8088
       connection:
         # For Superset API Connection
         username: admin

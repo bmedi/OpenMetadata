@@ -69,6 +69,11 @@ export enum GlobalSettingOptions {
   OM_HEALTH = 'om-health',
   PROFILER_CONFIGURATION = 'profiler-configuration',
   APPEARANCE = 'appearance',
+  DASHBOARD_DATA_MODEL = 'dashboardDataModels',
+  DATA_OBSERVABILITY = 'dataObservability',
+  APIS = 'apiServices',
+  API_COLLECTIONS = 'apiCollections',
+  API_ENDPOINTS = 'apiEndpoints',
 }
 
 export const GLOBAL_SETTING_PERMISSION_RESOURCES = [

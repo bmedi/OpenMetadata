@@ -305,168 +305,6 @@ export const NEW_TAG = {
   color: '#FF5733',
   icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAACFCAMAAAAKN9SOAAAAA1BMVEXmGSCqexgYAAAAI0lEQVRoge3BMQEAAADCoPVPbQwfoAAAAAAAAAAAAAAAAHgaMeAAAUWJHZ4AAAAASUVORK5CYII=',
 };
-const cypressGlossaryName = `Cypress Glossary ${uuid()}`;
-
-export const NEW_GLOSSARY = {
-  name: cypressGlossaryName,
-  description: 'This is the Cypress Glossary',
-  reviewer: 'Aaron Johnson',
-  addReviewer: true,
-  tag: 'PersonalData.Personal',
-  isMutually: true,
-};
-
-const cypressProductGlossaryName = `Cypress Product%Glossary ${uuid()}`;
-
-export const NEW_GLOSSARY_1 = {
-  name: cypressProductGlossaryName,
-  description: 'This is the Product glossary with percentage',
-  reviewer: 'Brandy Miller',
-  addReviewer: false,
-};
-const cypressAssetsGlossaryName = `Cypress Assets Glossary ${uuid()}`;
-
-export const CYPRESS_ASSETS_GLOSSARY = {
-  name: cypressAssetsGlossaryName,
-  description: 'This is the Assets Cypress Glossary',
-  reviewer: '',
-  addReviewer: false,
-  tag: 'PII.None',
-};
-
-const cypressAssetsGlossary1Name = `Cypress Assets Glossary 1 ${uuid()}`;
-
-export const CYPRESS_ASSETS_GLOSSARY_1 = {
-  name: cypressAssetsGlossary1Name,
-  description: 'Cypress Assets Glossary 1 desc',
-  reviewer: '',
-  addReviewer: false,
-  tag: 'PII.None',
-};
-
-const COMMON_ASSETS = [
-  {
-    name: 'dim_customer',
-    fullyQualifiedName: 'sample_data.ecommerce_db.shopify.dim_customer',
-  },
-  {
-    name: 'raw_order',
-    fullyQualifiedName: 'sample_data.ecommerce_db.shopify.raw_order',
-  },
-  {
-    name: 'presto_etl',
-    fullyQualifiedName: 'sample_airflow.presto_etl',
-  },
-];
-
-export const CYPRESS_ASSETS_GLOSSARY_TERMS = {
-  term_1: {
-    name: `Cypress%PercentTerm`,
-    description: 'This is the Cypress PercentTerm',
-    synonyms: 'buy,collect,acquire',
-    fullyQualifiedName: `${cypressAssetsGlossaryName}.Cypress%PercentTerm`,
-    assets: COMMON_ASSETS,
-  },
-  term_2: {
-    name: 'Cypress Space GTerm',
-    description: 'This is the Cypress Sales',
-    synonyms: 'give,disposal,deal',
-    fullyQualifiedName: `${cypressAssetsGlossaryName}.Cypress Space GTerm`,
-    assets: COMMON_ASSETS,
-  },
-  term_3: {
-    name: 'Cypress.Dot.GTerm',
-    description: 'This is the Cypress with space',
-    synonyms: 'tea,coffee,water',
-    fullyQualifiedName: `${cypressAssetsGlossaryName}."Cypress.Dot.GTerm"`,
-    displayFqn: `${cypressAssetsGlossaryName}.&quot;Cypress.Dot.GTerm&quot;`,
-    assets: COMMON_ASSETS,
-  },
-};
-
-const assetTermsUUId = uuid();
-
-export const CYPRESS_ASSETS_GLOSSARY_TERMS_1 = {
-  term_1: {
-    name: `Term1_${assetTermsUUId}`,
-    description: 'term1 desc',
-    fullyQualifiedName: `${cypressAssetsGlossary1Name}.Term1_${assetTermsUUId}`,
-    synonyms: 'buy,collect,acquire',
-    assets: COMMON_ASSETS,
-  },
-  term_2: {
-    name: `Term2_${assetTermsUUId}`,
-    description: 'term2 desc',
-    synonyms: 'give,disposal,deal',
-    fullyQualifiedName: `${cypressAssetsGlossary1Name}.Term2_${assetTermsUUId}`,
-    assets: COMMON_ASSETS,
-  },
-  term_3: {
-    name: `Term3_${assetTermsUUId}`,
-    synonyms: 'tea,coffee,water',
-    description: 'term3 desc',
-    fullyQualifiedName: `${cypressAssetsGlossary1Name}.Term3_${assetTermsUUId}`,
-    assets: COMMON_ASSETS,
-  },
-  term_4: {
-    name: `Term4_${assetTermsUUId}`,
-    description: 'term4 desc',
-    synonyms: 'milk,biscuit,water',
-    fullyQualifiedName: `${cypressAssetsGlossary1Name}.Term4_${assetTermsUUId}`,
-    assets: COMMON_ASSETS,
-  },
-};
-
-export const NEW_GLOSSARY_TERMS = {
-  term_1: {
-    name: 'CypressPurchase',
-    description: 'This is the Cypress Purchase',
-    synonyms: 'buy,collect,acquire',
-    fullyQualifiedName: `${cypressGlossaryName}.CypressPurchase`,
-  },
-  term_2: {
-    name: 'CypressSales',
-    description: 'This is the Cypress Sales',
-    synonyms: 'give,disposal,deal',
-    fullyQualifiedName: `${cypressGlossaryName}.CypressSales`,
-  },
-  term_3: {
-    name: 'Cypress Space',
-    description: 'This is the Cypress with space',
-    synonyms: 'tea,coffee,water',
-    fullyQualifiedName: `${cypressGlossaryName}.Cypress Space`,
-    assets: COMMON_ASSETS,
-  },
-};
-export const GLOSSARY_TERM_WITH_DETAILS = {
-  name: 'Accounts',
-  description: 'This is the Accounts',
-  tag: 'PersonalData.Personal',
-  synonyms: 'book,ledger,results',
-  relatedTerms: 'CypressSales',
-  reviewer: 'Colin Ho',
-  inheritedReviewer: 'Aaron Johnson',
-  fullyQualifiedName: `${cypressGlossaryName}.Accounts`,
-};
-
-export const NEW_GLOSSARY_1_TERMS = {
-  term_1: {
-    name: 'Features%Term',
-    description: 'This is the Features',
-    synonyms: 'data,collect,time',
-    fullyQualifiedName: `${cypressProductGlossaryName}.Features%Term`,
-    color: '#FF5733',
-    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAACFCAMAAAAKN9SOAAAAA1BMVEXmGSCqexgYAAAAI0lEQVRoge3BMQEAAADCoPVPbQwfoAAAAAAAAAAAAAAAAHgaMeAAAUWJHZ4AAAAASUVORK5CYII=',
-  },
-  term_2: {
-    name: 'Uses',
-    description: 'This is the Uses',
-    synonyms: 'home,business,adventure',
-    fullyQualifiedName: `${cypressProductGlossaryName}.Uses`,
-    color: '#50C878',
-    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAB5CAMAAABm4rHGAAAAA1BMVEUA7gBnh+O4AAAAKUlEQVR4nO3BAQEAAACCIP+vbkhAAQAAAAAAAAAAAAAAAAAAAAAAAL8GTJIAAVDbVToAAAAASUVORK5CYII=',
-  },
-};
 
 export const service = {
   name: 'Glue',
@@ -499,197 +337,8 @@ export const ENTITY_SERVICE_TYPE = {
   Search: 'Search',
 };
 
-export const ENTITIES = {
-  entity_container: {
-    name: 'container',
-    description: 'This is Container custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'containers',
-  },
-
-  entity_dashboard: {
-    name: 'dashboard',
-    description: 'This is Dashboard custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: SEARCH_ENTITY_DASHBOARD.dashboard_1,
-    entityApiType: 'dashboards',
-  },
-
-  entity_database: {
-    name: 'database',
-    description: 'This is Database custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'databases',
-  },
-
-  entity_databaseSchema: {
-    name: 'databaseSchema',
-    description: 'This is Database Schema custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'databaseSchemas',
-  },
-
-  entity_glossaryTerm: {
-    name: 'glossaryTerm',
-    description: 'This is Glossary Term custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'glossaryTerm',
-  },
-
-  entity_mlmodel: {
-    name: 'mlmodel',
-    description: 'This is ML Model custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'mlmodels',
-  },
-
-  entity_pipeline: {
-    name: 'pipeline',
-    description: 'This is Pipeline custom property',
-    integerValue: '78',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: true,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: SEARCH_ENTITY_PIPELINE.pipeline_1,
-    entityApiType: 'pipelines',
-  },
-
-  entity_searchIndex: {
-    name: 'searchIndex',
-    description: 'This is Search Index custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'searchIndexes',
-  },
-
-  entity_storedProcedure: {
-    name: 'storedProcedure',
-    description: 'This is Stored Procedure custom property',
-    integerValue: '14',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: {},
-    entityApiType: 'storedProcedures',
-  },
-
-  entity_table: {
-    name: 'table',
-    description: 'This is Table custom property',
-    integerValue: '45',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: SEARCH_ENTITY_TABLE.table_1,
-    entityApiType: 'tables',
-  },
-
-  entity_topic: {
-    name: 'topic',
-    description: 'This is Topic custom property',
-    integerValue: '23',
-    stringValue: 'This is string propery',
-    markdownValue: 'This is markdown value',
-    enumConfig: {
-      values: ['enum1', 'enum2', 'enum3'],
-      multiSelect: false,
-    },
-    dateFormatConfig: 'yyyy-mm-dd',
-    dateTimeFormatConfig: 'yyyy-mm-dd hh:mm:ss',
-    entityReferenceConfig: ['User', 'Team'],
-    entityObj: SEARCH_ENTITY_TOPIC.topic_1,
-    entityApiType: 'topics',
-  },
-};
-
 export const LOGIN = {
-  username: 'admin',
+  username: 'admin@openmetadata.org',
   password: 'admin',
 };
 
@@ -756,16 +405,6 @@ export const DESTINATION = {
   },
 };
 
-export const CUSTOM_PROPERTY_INVALID_NAMES = {
-  CAPITAL_CASE: 'CapitalCase',
-  WITH_UNDERSCORE: 'with_underscore',
-  WITH_DOTS: 'with.',
-  WITH_SPACE: 'with ',
-};
-
-export const CUSTOM_PROPERTY_NAME_VALIDATION_ERROR =
-  'Name must start with lower case with no space, underscore, or dots.';
-
 export const TAG_INVALID_NAMES = {
   MIN_LENGTH: 'c',
   MAX_LENGTH: 'a87439625b1c2d3e4f5061728394a5b6c7d8e90a1b2c3d4e5f67890ab',
@@ -783,9 +422,8 @@ export const NAME_VALIDATION_ERROR =
 
 export const NAME_MIN_MAX_LENGTH_VALIDATION_ERROR =
   'Name size must be between 2 and 64';
-
-export const NAME_MAX_LENGTH_VALIDATION_ERROR =
-  'Name can be a maximum of 128 characters';
+export const NAME_MIN_MAX_LENGTH_VALIDATION_ERROR_1_128 =
+  'Name size must be between 1 and 128';
 
 export const DOMAIN_1 = {
   name: 'Cypress%Domain',
@@ -993,3 +631,10 @@ export const ID: Record<
     api: '/api/v1/services/storageServices?*',
   },
 };
+
+export const JWT_EXPIRY_TIME_MAP = {
+  '1 hour': 3600,
+  '2 hours': 7200,
+};
+
+export const EXAMPLE_LONG_STRING = 'name'.repeat(33); // 132 characters

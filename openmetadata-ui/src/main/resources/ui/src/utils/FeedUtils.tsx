@@ -12,6 +12,7 @@
  */
 
 import { RightOutlined } from '@ant-design/icons';
+import Icon from '@ant-design/icons/lib/components/Icon';
 import { Typography } from 'antd';
 import { AxiosError } from 'axios';
 import { Operation } from 'fast-json-patch';
@@ -36,7 +37,6 @@ import {
   hashtagRegEx,
   linkRegEx,
   mentionRegEx,
-  NON_DATA_ASSET_ENTITIES,
   teamsLinkRegEx,
 } from '../constants/Feeds.constants';
 import { EntityType, FqnPart, TabSpecificField } from '../enums/entity.enum';
@@ -561,6 +561,7 @@ export const entityDisplayName = (entityType: string, entityFQN: string) => {
     case EntityType.METADATA_SERVICE:
     case EntityType.STORAGE_SERVICE:
     case EntityType.SEARCH_SERVICE:
+    case EntityType.API_SERVICE:
     case EntityType.TYPE:
       displayName = getPartialNameFromFQN(entityFQN, ['service']);
 
@@ -641,21 +642,24 @@ export const getFeedChangeFieldLabel = (fieldName?: EntityField) => {
 };
 
 export const getFieldOperationIcon = (fieldOperation?: FieldOperation) => {
-  let Icon = UpdatedIcon;
+  let icon;
 
   switch (fieldOperation) {
     case FieldOperation.Added:
-      Icon = AddIcon;
+      icon = AddIcon;
 
       break;
-    case FieldOperation.Updated:
     case FieldOperation.Deleted:
-      Icon = UpdatedIcon;
+      icon = UpdatedIcon;
 
       break;
   }
 
-  return <Icon height={16} width={16} />;
+  return (
+    icon && (
+      <Icon component={icon} height={16} name={fieldOperation} width={16} />
+    )
+  );
 };
 
 export const getTestCaseNameListForResult = (
@@ -807,27 +811,12 @@ export const getFeedHeaderTextFromCardStyle = (
     case CardStyle.EntityCreated:
     case CardStyle.EntityDeleted:
     case CardStyle.EntitySoftDeleted:
-      if (NON_DATA_ASSET_ENTITIES.includes(entityType as EntityType)) {
-        return entityType === EntityType.APPLICATION ? (
+      if (entityType === EntityType.APPLICATION) {
+        return (
           <Typography.Text>
             {getActionLabelFromCardStyle(cardStyle, true)}{' '}
             {i18next.t('label.app-lowercase')}
           </Typography.Text>
-        ) : (
-          <Transi18next
-            i18nKey="message.feed-entity-action-header"
-            renderElement={<Typography.Text className="font-bold" />}
-            values={{
-              entity: i18next.t(
-                `label.${
-                  entityType === EntityType.EVENT_SUBSCRIPTION
-                    ? 'alert'
-                    : entityType
-                }-lowercase`
-              ),
-              action: getActionLabelFromCardStyle(cardStyle),
-            }}
-          />
         );
       }
 

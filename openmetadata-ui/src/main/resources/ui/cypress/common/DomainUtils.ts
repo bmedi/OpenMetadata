@@ -13,7 +13,7 @@
 import {
   DELETE_TERM,
   INVALID_NAMES,
-  NAME_MAX_LENGTH_VALIDATION_ERROR,
+  NAME_MIN_MAX_LENGTH_VALIDATION_ERROR_1_128,
   NAME_VALIDATION_ERROR,
   SEARCH_ENTITY_TABLE,
 } from '../constants/constants';
@@ -47,9 +47,10 @@ export const validateDomainForm = () => {
     .scrollIntoView()
     .should('be.visible')
     .type(INVALID_NAMES.MAX_LENGTH);
-  cy.get('#name_help')
-    .should('be.visible')
-    .contains(NAME_MAX_LENGTH_VALIDATION_ERROR);
+  cy.get('#name_help').should(
+    'contain',
+    NAME_MIN_MAX_LENGTH_VALIDATION_ERROR_1_128
+  );
 
   // with special char validation
   cy.get('[data-testid="name"]')
@@ -97,6 +98,7 @@ const updateOwner = (newOwner) => {
   cy.get('[data-testid="owner-select-users-search-bar"]').type(newOwner);
   verifyResponseStatusCode('@searchOwner', 200);
   cy.get(`.ant-popover [title="${newOwner}"]`).click();
+  cy.get('[data-testid="selectable-list-update-btn"]').click();
   verifyResponseStatusCode('@patchOwner', 200);
 
   cy.get(`[data-testid="domain-owner-name"]`).should('contain', newOwner);
@@ -171,12 +173,6 @@ export const removeAssets = (domainObj) => {
     .contains(entity.term)
     .click();
 
-  visitEntityDetailsPage({
-    term: entity.term,
-    serviceName: entity.serviceName,
-    entity: entity.entity,
-  });
-
   cy.get('[data-testid="add-domain"]').click();
   verifyResponseStatusCode('@domains', 200);
   cy.get('[data-testid="remove-owner"]').click();
@@ -206,7 +202,7 @@ const updateDescription = (newDescription) => {
 };
 
 const fillForm = (formObj, type) => {
-  interceptURL('GET', '/api/v1/users?limit=25&isBot=false', 'getUsers');
+  interceptURL('GET', '/api/v1/users?*isBot=false*', 'getUsers');
   cy.get('[data-testid="name"]').scrollIntoView().clear().type(formObj.name);
 
   cy.get(descriptionBox)
@@ -227,17 +223,26 @@ const fillForm = (formObj, type) => {
   cy.get('[data-testid="owner-select-users-search-bar"]').type(formObj.owner);
   verifyResponseStatusCode('@searchOwner', 200);
   cy.get(`.ant-popover [title="${formObj.owner}"]`).click();
+  cy.get('[data-testid="selectable-list-update-btn"]').click();
   cy.get('[data-testid="owner-container"]').children().should('have.length', 1);
 
   cy.get('[data-testid="add-experts"]').scrollIntoView().click();
+  verifyResponseStatusCode('@getUsers', 200);
+  cy.get('[data-testid="loader"]').should('not.exist');
+
+  interceptURL(
+    'GET',
+    `api/v1/search/query?q=*${encodeURI(formObj.experts)}*`,
+    'searchExpert'
+  );
   cy.get('.user-select-popover [data-testid="searchbar"]').type(
     formObj.experts
   );
-  cy.get(`[title="${formObj.experts}"]`).scrollIntoView().click();
-  cy.get('[data-testid="selectable-list-update-btn"]')
-    .should('exist')
-    .and('be.visible')
+  verifyResponseStatusCode('@searchExpert', 200);
+  cy.get(`.user-select-popover [title="${formObj.experts}"]`)
+    .scrollIntoView()
     .click();
+  cy.get('[data-testid="selectable-list-update-btn"]').click();
 
   cy.get('[data-testid="delete-modal"]').should('not.exist');
   cy.get('[data-testid="experts-container"]')

@@ -13,10 +13,28 @@
 
 import { DATA_ASSETS } from './constants';
 
+export type FilterItem = {
+  label: string;
+  key: string;
+  aggregateKey?: string;
+  filterSearchIndex?: string;
+  selectOption1?: string;
+  selectOptionTestId1?: string;
+  selectOption2?: string;
+  selectOptionTestId2?: string;
+  select?: boolean;
+};
+
 export const COMMON_DROPDOWN_ITEMS = [
   {
+    label: 'Domain',
+    key: 'domain.displayName.keyword',
+    selectOption1: 'Cypress Domain QfTest',
+    selectOptionTestId1: 'Cypress Domain QfTest',
+  },
+  {
     label: 'Owner',
-    key: 'owner.displayName.keyword',
+    key: 'owners.displayName.keyword',
     aggregateKey: 'displayName.keyword',
     filterSearchIndex: 'user_search_index%2Cteam_search_index',
     selectOption1: 'Aaron Johnson',
@@ -40,7 +58,9 @@ export const COMMON_DROPDOWN_ITEMS = [
   },
   {
     label: 'Tier',
-    key: 'tier.tagsFQN',
+    key: 'tier.tagFQN',
+    selectOption1: 'Tier1',
+    selectOptionTestId1: 'Tier.Tier1',
   },
   {
     label: 'Service Type',
@@ -107,7 +127,7 @@ export const CONTAINER_DROPDOWN_ITEMS = [
 export const GLOSSARY_DROPDOWN_ITEMS = [
   {
     label: 'Owner',
-    key: 'owner.displayName.keyword',
+    key: 'owners.displayName.keyword',
   },
   {
     label: 'Tag',
@@ -117,6 +137,10 @@ export const GLOSSARY_DROPDOWN_ITEMS = [
     label: 'Glossaries',
     key: 'glossary.name.keyword',
   },
+  {
+    label: 'Status',
+    key: 'status',
+  },
 ];
 
 export const TAG_DROPDOWN_ITEMS = [
@@ -124,6 +148,13 @@ export const TAG_DROPDOWN_ITEMS = [
     label: 'Classification',
     key: 'classification.name.keyword',
   },
+];
+
+export const SUPPORTED_EMPTY_FILTER_FIELDS = [
+  'domain.displayName.keyword',
+  'owners.displayName.keyword',
+  'tags.tagFQN',
+  'tier.tagFQN',
 ];
 
 export const QUICK_FILTERS_BY_ASSETS = [

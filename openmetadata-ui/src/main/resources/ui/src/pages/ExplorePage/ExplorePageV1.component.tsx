@@ -50,14 +50,16 @@ import { useApplicationStore } from '../../hooks/useApplicationStore';
 import { Aggregations, SearchResponse } from '../../interface/search.interface';
 import { searchQuery } from '../../rest/searchAPI';
 import { getCountBadge } from '../../utils/CommonUtils';
-import { findActiveSearchIndex } from '../../utils/Explore.utils';
 import { getCombinedQueryFilterObject } from '../../utils/ExplorePage/ExplorePageUtils';
+import {
+  extractTermKeys,
+  findActiveSearchIndex,
+} from '../../utils/ExploreUtils';
 import searchClassBase from '../../utils/SearchClassBase';
 import { escapeESReservedCharacters } from '../../utils/StringsUtils';
 import { showErrorToast } from '../../utils/ToastUtils';
 import {
   QueryFieldInterface,
-  QueryFieldValueInterface,
   QueryFilterInterface,
 } from './ExplorePage.interface';
 
@@ -157,17 +159,19 @@ const ExplorePageV1: FunctionComponent = () => {
 
     // Getting the filters that can be common for all the Entities
     const must = mustField.filter((filterCategory: QueryFieldInterface) => {
-      const shouldField: QueryFieldValueInterface[] = get(
+      const shouldField: QueryFieldInterface[] = get(
         filterCategory,
         'bool.should',
         []
       );
 
+      const terms = extractTermKeys(shouldField);
+
       // check if the filter category is present in the common filters array
       const isCommonFieldPresent =
         !isEmpty(shouldField) &&
-        COMMON_FILTERS_FOR_DIFFERENT_TABS.find(
-          (value) => value === Object.keys(shouldField[0].term)[0]
+        COMMON_FILTERS_FOR_DIFFERENT_TABS.find((value) =>
+          terms.includes(value)
         );
 
       return isCommonFieldPresent;
@@ -229,6 +233,10 @@ const ExplorePageV1: FunctionComponent = () => {
   };
 
   const searchIndex = useMemo(() => {
+    if (!searchQueryParam) {
+      return SearchIndex.DATA_ASSET;
+    }
+
     const tabInfo = Object.entries(tabsInfo).find(
       ([, tabInfo]) => tabInfo.path === tab
     );
@@ -241,7 +249,7 @@ const ExplorePageV1: FunctionComponent = () => {
     return !isNil(tabInfo)
       ? (tabInfo[0] as ExploreSearchIndex)
       : SearchIndex.TABLE;
-  }, [tab, searchHitCounts]);
+  }, [tab, searchHitCounts, searchQueryParam]);
 
   const tabItems = useMemo(() => {
     const items = Object.entries(tabsInfo).map(
@@ -348,25 +356,27 @@ const ExplorePageV1: FunctionComponent = () => {
     );
 
     setIsLoading(true);
-    Promise.all([
-      searchQuery({
-        query: !isEmpty(searchQueryParam)
-          ? escapeESReservedCharacters(searchQueryParam)
-          : '',
-        searchIndex,
-        queryFilter: combinedQueryFilter,
-        sortField: sortValue,
-        sortOrder: sortOrder,
-        pageNumber: page,
-        pageSize: size,
-        includeDeleted: showDeleted,
-      })
-        .then((res) => res)
-        .then((res) => {
-          setSearchResults(res);
-          setUpdatedAggregations(res.aggregations);
-        }),
-      searchQuery({
+
+    const searchAPICall = searchQuery({
+      query: !isEmpty(searchQueryParam)
+        ? escapeESReservedCharacters(searchQueryParam)
+        : '',
+      searchIndex,
+      queryFilter: combinedQueryFilter,
+      sortField: sortValue,
+      sortOrder: sortOrder,
+      pageNumber: page,
+      pageSize: size,
+      includeDeleted: showDeleted,
+    }).then((res) => {
+      setSearchResults(res as SearchResponse<ExploreSearchIndex>);
+      setUpdatedAggregations(res.aggregations);
+    });
+
+    const apiCalls = [searchAPICall];
+
+    if (searchQueryParam) {
+      const countAPICall = searchQuery({
         query: escapeESReservedCharacters(searchQueryParam),
         pageNumber: 0,
         pageSize: 0,
@@ -391,8 +401,11 @@ const ExplorePageV1: FunctionComponent = () => {
           }
         });
         setSearchHitCounts(counts as SearchHitCounts);
-      }),
-    ])
+      });
+      apiCalls.push(countAPICall);
+    }
+
+    Promise.all(apiCalls)
       .catch((error) => {
         if (
           error.response?.data.message.includes(FAILED_TO_FIND_INDEX_ERROR) ||
@@ -403,7 +416,6 @@ const ExplorePageV1: FunctionComponent = () => {
           showErrorToast(error);
         }
       })
-
       .finally(() => setIsLoading(false));
   };
 

@@ -152,21 +152,18 @@
           "description": {
             "type": "text"
           },
-          "entityType": {
+          "type": {
             "type": "keyword"
-          },
-          "testPlatforms": {
-            "type": "text",
-            "fields": {
-              "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-              }
-            }
           }
         }
       },
+      "testCaseType": {
+        "type": "keyword"
+      },
       "entityType": {
+        "type": "keyword"
+      },
+      "dataQualityDimension": {
         "type": "keyword"
       },
       "suggest": {
@@ -179,7 +176,7 @@
           }
         ]
       },
-      "owner": {
+      "owners": {
         "properties": {
           "id": {
             "type": "keyword",
@@ -403,6 +400,27 @@
           "timestamp": {
             "type": "date",
             "format": "strict_date_optional_time||epoch_millis"
+          }
+        }
+      },
+      "tags": {
+        "type": "nested",
+        "properties": {
+          "tagFQN": {
+            "type": "keyword"
+          },
+          "labelType": {
+            "type": "keyword"
+          },
+          "description": {
+            "type": "text",
+            "index_options": "docs"
+          },
+          "source": {
+            "type": "keyword"
+          },
+          "state": {
+            "type": "keyword"
           }
         }
       },

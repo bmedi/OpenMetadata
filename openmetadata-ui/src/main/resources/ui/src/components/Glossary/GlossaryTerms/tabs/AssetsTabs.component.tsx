@@ -50,7 +50,7 @@ import {
 import { ES_UPDATE_DELAY } from '../../../../constants/constants';
 import { GLOSSARIES_DOCS } from '../../../../constants/docs.constants';
 import { ERROR_PLACEHOLDER_TYPE } from '../../../../enums/common.enum';
-import { EntityType } from '../../../../enums/entity.enum';
+import { EntityType, TabSpecificField } from '../../../../enums/entity.enum';
 import { SearchIndex } from '../../../../enums/search.enum';
 import { GlossaryTerm } from '../../../../generated/entity/data/glossaryTerm';
 import { DataProduct } from '../../../../generated/entity/domains/dataProduct';
@@ -81,8 +81,7 @@ import {
 import {
   getAggregations,
   getQuickFilterQuery,
-  getSelectedValuesFromQuickFilter,
-} from '../../../../utils/Explore.utils';
+} from '../../../../utils/ExploreUtils';
 import {
   escapeESReservedCharacters,
   getEncodedFqn,
@@ -207,7 +206,7 @@ const AssetsTabs = forwardRef(
           return `(dataProducts.fullyQualifiedName:"${encodedFqn}")`;
 
         case AssetsOfEntity.TEAM:
-          return `(owner.fullyQualifiedName:"${escapeESReservedCharacters(
+          return `(owners.fullyQualifiedName:"${escapeESReservedCharacters(
             fqn
           )}")`;
 
@@ -304,7 +303,9 @@ const AssetsTabs = forwardRef(
 
           break;
         case AssetsOfEntity.DATA_PRODUCT:
-          data = await getDataProductByName(fqn, { fields: 'domain,assets' });
+          data = await getDataProductByName(fqn, {
+            fields: [TabSpecificField.DOMAIN, TabSpecificField.ASSETS],
+          });
 
           break;
         case AssetsOfEntity.GLOSSARY:
@@ -494,7 +495,7 @@ const AssetsTabs = forwardRef(
           <ErrorPlaceHolder
             icon={<AddPlaceHolderIcon className="h-32 w-32" />}
             type={ERROR_PLACEHOLDER_TYPE.CUSTOM}>
-            <Typography.Paragraph style={{ marginBottom: '0' }}>
+            <Typography.Paragraph>
               {noDataPlaceholder ??
                 t('message.adding-new-entity-is-easy-just-give-it-a-spin', {
                   entity: t('label.asset'),
@@ -743,15 +744,10 @@ const AssetsTabs = forwardRef(
 
     useEffect(() => {
       const dropdownItems = getAssetsPageQuickFilters(type);
-
       setFilters(
         dropdownItems.map((item) => ({
           ...item,
-          value: getSelectedValuesFromQuickFilter(
-            item,
-            dropdownItems,
-            undefined // pass in state variable
-          ),
+          value: [],
         }))
       );
     }, [type]);

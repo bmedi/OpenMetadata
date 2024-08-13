@@ -13,8 +13,6 @@
 
 package org.openmetadata.service;
 
-import static org.openmetadata.service.security.SecurityUtil.tryCreateOidcClient;
-
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
 import io.dropwizard.configuration.SubstitutingSourceProvider;
@@ -61,10 +59,12 @@ import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ServerProperties;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.statement.SqlStatements;
 import org.jdbi.v3.sqlobject.SqlObjects;
 import org.openmetadata.schema.api.security.AuthenticationConfiguration;
 import org.openmetadata.schema.api.security.AuthorizerConfiguration;
 import org.openmetadata.schema.api.security.ClientType;
+import org.openmetadata.schema.configuration.LimitsConfiguration;
 import org.openmetadata.schema.services.connections.metadata.AuthProvider;
 import org.openmetadata.service.apps.ApplicationHandler;
 import org.openmetadata.service.apps.scheduler.AppScheduler;
@@ -84,6 +84,8 @@ import org.openmetadata.service.jdbi3.EntityRepository;
 import org.openmetadata.service.jdbi3.MigrationDAO;
 import org.openmetadata.service.jdbi3.locator.ConnectionAwareAnnotationSqlLocator;
 import org.openmetadata.service.jdbi3.locator.ConnectionType;
+import org.openmetadata.service.limits.DefaultLimits;
+import org.openmetadata.service.limits.Limits;
 import org.openmetadata.service.migration.Migration;
 import org.openmetadata.service.migration.MigrationValidationClient;
 import org.openmetadata.service.migration.api.MigrationWorkflow;
@@ -101,6 +103,7 @@ import org.openmetadata.service.security.AuthCallbackServlet;
 import org.openmetadata.service.security.AuthLoginServlet;
 import org.openmetadata.service.security.AuthLogoutServlet;
 import org.openmetadata.service.security.AuthRefreshServlet;
+import org.openmetadata.service.security.AuthenticationCodeFlowHandler;
 import org.openmetadata.service.security.Authorizer;
 import org.openmetadata.service.security.NoopAuthorizer;
 import org.openmetadata.service.security.NoopFilter;
@@ -114,6 +117,7 @@ import org.openmetadata.service.security.saml.SamlAssertionConsumerServlet;
 import org.openmetadata.service.security.saml.SamlLoginServlet;
 import org.openmetadata.service.security.saml.SamlMetadataServlet;
 import org.openmetadata.service.security.saml.SamlSettingsHolder;
+import org.openmetadata.service.security.saml.SamlTokenRefreshServlet;
 import org.openmetadata.service.socket.FeedServlet;
 import org.openmetadata.service.socket.OpenMetadataAssetServlet;
 import org.openmetadata.service.socket.SocketAddressFilter;
@@ -123,7 +127,6 @@ import org.openmetadata.service.util.incidentSeverityClassifier.IncidentSeverity
 import org.openmetadata.service.util.jdbi.DatabaseAuthenticationProviderFactory;
 import org.openmetadata.service.util.jdbi.OMSqlLogger;
 import org.pac4j.core.util.CommonHelper;
-import org.pac4j.oidc.client.OidcClient;
 import org.quartz.SchedulerException;
 
 /** Main catalog application */
@@ -131,6 +134,7 @@ import org.quartz.SchedulerException;
 public class OpenMetadataApplication extends Application<OpenMetadataApplicationConfig> {
   private Authorizer authorizer;
   private AuthenticatorHandler authenticatorHandler;
+  private Limits limits;
 
   protected Jdbi jdbi;
 
@@ -168,11 +172,11 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
     // as first step register all the repositories
     Entity.initializeRepositories(catalogConfig, jdbi);
 
-    // Init Settings Cache after repositories
-    SettingsCache.initialize(catalogConfig);
-
     // Configure the Fernet instance
     Fernet.getInstance().setFernetKey(catalogConfig);
+
+    // Init Settings Cache after repositories
+    SettingsCache.initialize(catalogConfig);
 
     initializeWebsockets(catalogConfig, environment);
 
@@ -200,6 +204,9 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
 
     // Register Authenticator
     registerAuthenticator(catalogConfig);
+
+    // Register Limits
+    registerLimits(catalogConfig);
 
     // Unregister dropwizard default exception mappers
     ((DefaultServerFactory) catalogConfig.getServerFactory())
@@ -265,55 +272,32 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
         contextHandler.setSessionHandler(new SessionHandler());
       }
 
+      AuthenticationCodeFlowHandler authenticationCodeFlowHandler =
+          new AuthenticationCodeFlowHandler(
+              config.getAuthenticationConfiguration(), config.getAuthorizerConfiguration());
+
       // Register Servlets
-      OidcClient oidcClient =
-          tryCreateOidcClient(config.getAuthenticationConfiguration().getOidcConfiguration());
-      oidcClient.setCallbackUrl(
-          config.getAuthenticationConfiguration().getOidcConfiguration().getCallbackUrl());
       ServletRegistration.Dynamic authLogin =
           environment
               .servlets()
-              .addServlet(
-                  "oauth_login",
-                  new AuthLoginServlet(
-                      oidcClient,
-                      config.getAuthenticationConfiguration(),
-                      config.getAuthorizerConfiguration()));
+              .addServlet("oauth_login", new AuthLoginServlet(authenticationCodeFlowHandler));
       authLogin.addMapping("/api/v1/auth/login");
       ServletRegistration.Dynamic authCallback =
           environment
               .servlets()
-              .addServlet(
-                  "auth_callback",
-                  new AuthCallbackServlet(
-                      oidcClient,
-                      config.getAuthenticationConfiguration(),
-                      config.getAuthorizerConfiguration()));
+              .addServlet("auth_callback", new AuthCallbackServlet(authenticationCodeFlowHandler));
       authCallback.addMapping("/callback");
 
       ServletRegistration.Dynamic authLogout =
           environment
               .servlets()
-              .addServlet(
-                  "auth_logout",
-                  new AuthLogoutServlet(
-                      config
-                          .getAuthenticationConfiguration()
-                          .getOidcConfiguration()
-                          .getServerUrl()));
+              .addServlet("auth_logout", new AuthLogoutServlet(authenticationCodeFlowHandler));
       authLogout.addMapping("/api/v1/auth/logout");
 
       ServletRegistration.Dynamic refreshServlet =
           environment
               .servlets()
-              .addServlet(
-                  "auth_refresh",
-                  new AuthRefreshServlet(
-                      oidcClient,
-                      config
-                          .getAuthenticationConfiguration()
-                          .getOidcConfiguration()
-                          .getServerUrl()));
+              .addServlet("auth_refresh", new AuthRefreshServlet(authenticationCodeFlowHandler));
       refreshServlet.addMapping("/api/v1/auth/refresh");
     }
   }
@@ -374,6 +358,10 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
       ServletRegistration.Dynamic samlMetadataServlet =
           environment.servlets().addServlet("saml_metadata", new SamlMetadataServlet());
       samlMetadataServlet.addMapping("/api/v1/saml/metadata");
+
+      ServletRegistration.Dynamic samlRefreshServlet =
+          environment.servlets().addServlet("saml_refresh_token", new SamlTokenRefreshServlet());
+      samlRefreshServlet.addMapping("/api/v1/saml/refresh");
     }
   }
 
@@ -394,6 +382,7 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
     jdbiInstance
         .getConfig(SqlObjects.class)
         .setSqlLocator(new ConnectionAwareAnnotationSqlLocator(dbFactory.getDriverClass()));
+    jdbiInstance.getConfig(SqlStatements.class).setUnusedBindingAllowed(true);
 
     return jdbiInstance;
   }
@@ -439,12 +428,12 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
     String maxMigration = Migration.lastMigrationFile(conf.getMigrationConfiguration());
     if (lastMigrated.isEmpty()) {
       throw new IllegalStateException(
-          "Could not validate Flyway migrations in the database. Make sure you have run `./bootstrap/bootstrap_storage.sh migrate-all` at least once.");
+          "Could not validate Flyway migrations in the database. Make sure you have run `./bootstrap/openmetadata-ops.sh migrate` at least once.");
     }
     if (lastMigrated.get().compareTo(maxMigration) < 0) {
       throw new IllegalStateException(
           "There are pending migrations to be run on the database."
-              + " Please backup your data and run `./bootstrap/bootstrap_storage.sh migrate-all`."
+              + " Please backup your data and run `./bootstrap/openmetadata-ops.sh migrate`."
               + " You can find more information on upgrading OpenMetadata at"
               + " https://docs.open-metadata.org/deployment/upgrade ");
     }
@@ -458,6 +447,7 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
             conf.getMigrationConfiguration().getNativePath(),
             connectionType,
             conf.getMigrationConfiguration().getExtensionPath(),
+            conf.getPipelineServiceClientConfiguration(),
             false);
     migrationWorkflow.loadMigrations();
     migrationWorkflow.validateMigrationsForServer();
@@ -524,6 +514,26 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
     }
   }
 
+  private void registerLimits(OpenMetadataApplicationConfig serverConfig)
+      throws NoSuchMethodException,
+          ClassNotFoundException,
+          IllegalAccessException,
+          InvocationTargetException,
+          InstantiationException {
+    LimitsConfiguration limitsConfiguration = serverConfig.getLimitsConfiguration();
+    if (limitsConfiguration != null && limitsConfiguration.getEnable()) {
+      limits =
+          Class.forName(limitsConfiguration.getClassName())
+              .asSubclass(Limits.class)
+              .getConstructor()
+              .newInstance();
+    } else {
+      LOG.info("Limits config not set, setting DefaultLimits");
+      limits = new DefaultLimits();
+    }
+    limits.init(serverConfig, jdbi);
+  }
+
   private void registerEventFilter(
       OpenMetadataApplicationConfig catalogConfig, Environment environment) {
     if (catalogConfig.getEventHandlerConfiguration() != null) {
@@ -550,7 +560,7 @@ public class OpenMetadataApplication extends Application<OpenMetadataApplication
       OpenMetadataApplicationConfig config, Environment environment, Jdbi jdbi) {
     CollectionRegistry.initialize();
     CollectionRegistry.getInstance()
-        .registerResources(jdbi, environment, config, authorizer, authenticatorHandler);
+        .registerResources(jdbi, environment, config, authorizer, authenticatorHandler, limits);
     environment.jersey().register(new JsonPatchProvider());
     OMErrorPageHandler eph = new OMErrorPageHandler(config.getWebConfiguration());
     eph.addErrorPage(Response.Status.NOT_FOUND.getStatusCode(), "/");

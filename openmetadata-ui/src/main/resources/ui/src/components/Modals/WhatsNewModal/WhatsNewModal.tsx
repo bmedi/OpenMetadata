@@ -24,7 +24,7 @@ import { VersionIndicatorIcon } from '../VersionIndicatorIcon.component';
 import ChangeLogs from './ChangeLogs';
 import FeaturesCarousel from './FeaturesCarousel';
 import './whats-new-modal.less';
-import { COOKIE_VERSION, LATEST_VERSION_ID, WHATS_NEW } from './whatsNewData';
+import { COOKIE_VERSION, WHATS_NEW } from './whatsNewData';
 import { ToggleType, WhatsNewModalProps } from './WhatsNewModal.interface';
 
 const cookieStorage = new CookieStorage();
@@ -36,7 +36,7 @@ const WhatsNewModal: FunctionComponent<WhatsNewModalProps> = ({
 }: WhatsNewModalProps) => {
   const { theme } = useApplicationStore();
 
-  const [activeData, setActiveData] = useState(WHATS_NEW[LATEST_VERSION_ID]);
+  const [activeData, setActiveData] = useState(WHATS_NEW[WHATS_NEW.length - 1]); // latest version will be last in the array
   const [checkedValue, setCheckedValue] = useState<ToggleType>(
     ToggleType.FEATURES
   );
@@ -110,19 +110,19 @@ const WhatsNewModal: FunctionComponent<WhatsNewModalProps> = ({
         </Col>
         <Col className="overflow-y-auto" span={21}>
           <div className="p-t-md px-10 ">
-            <div className="flex justify-between items-center p-b-sm">
+            <div className="flex justify-between items-center p-b-sm gap-1">
               <div>
                 <p className="text-base font-medium">{activeData.version}</p>
                 <p className="text-grey-muted text-xs">
                   {activeData.description}
                 </p>
+                {activeData?.note && (
+                  <p className="m-t-xs font-medium">{activeData.note}</p>
+                )}
               </div>
               <div>
                 {activeData.features.length > 0 && (
-                  <div
-                    className={classNames('whats-new-modal-button-container', {
-                      'w-60': activeData.features.length > 0,
-                    })}>
+                  <div className="whats-new-modal-button-container">
                     <Button.Group>
                       <Button
                         data-testid="WhatsNewModalFeatures"

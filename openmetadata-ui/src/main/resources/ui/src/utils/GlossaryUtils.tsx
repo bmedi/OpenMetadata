@@ -13,7 +13,7 @@
 
 import { Typography } from 'antd';
 import { DefaultOptionType } from 'antd/lib/select';
-import { isEmpty } from 'lodash';
+import { isEmpty, isUndefined } from 'lodash';
 import React from 'react';
 import { StatusType } from '../components/common/StatusBadge/StatusBadge.interface';
 import { ModifiedGlossaryTerm } from '../components/Glossary/GlossaryTermTab/GlossaryTermTab.interface';
@@ -22,25 +22,9 @@ import { FQN_SEPARATOR_CHAR } from '../constants/char.constants';
 import { EntityType } from '../enums/entity.enum';
 import { Glossary } from '../generated/entity/data/glossary';
 import { GlossaryTerm, Status } from '../generated/entity/data/glossaryTerm';
-import { EntityReference } from '../generated/type/entityReference';
 import { getEntityName } from './EntityUtils';
 import Fqn from './Fqn';
 import { getGlossaryPath } from './RouterUtils';
-
-export const getEntityReferenceFromGlossary = (
-  glossary: Glossary
-): EntityReference => {
-  return {
-    deleted: glossary.deleted,
-    href: glossary.href,
-    fullyQualifiedName: glossary.fullyQualifiedName ?? '',
-    id: glossary.id,
-    type: 'glossaryTerm',
-    description: glossary.description,
-    displayName: glossary.displayName,
-    name: glossary.name,
-  };
-};
 
 export const buildTree = (data: GlossaryTerm[]): GlossaryTerm[] => {
   const nodes: Record<string, GlossaryTerm> = {};
@@ -110,6 +94,22 @@ export const getQueryFilterToExcludeTerm = (fqn: string) => ({
     },
   },
 });
+
+export const getQueryFilterToIncludeApprovedTerm = () => {
+  return {
+    query: {
+      bool: {
+        must: [
+          {
+            term: {
+              status: Status.Approved,
+            },
+          },
+        ],
+      },
+    },
+  };
+};
 
 export const StatusClass = {
   [Status.Approved]: StatusType.Success,
@@ -194,6 +194,7 @@ export const convertGlossaryTermsToTreeOptions = (
     return {
       id: option.id,
       value: option.fullyQualifiedName,
+      name: option.name,
       title: (
         <Typography.Text ellipsis style={{ color: option?.style?.color }}>
           {getEntityName(option)}
@@ -263,4 +264,48 @@ export const findExpandableKeysForArray = (
   });
 
   return expandableKeys;
+};
+
+/**
+ * Filter out the tree node options based on the filter options.
+ *
+ * @param options - An array of Glossary objects.
+ * @param filterOptions - An array of FQN string to filter.
+ * @returns An array of filtered Glossary
+ */
+export const filterTreeNodeOptions = (
+  options: Glossary[],
+  filterOptions: string[]
+): Glossary[] => {
+  if (isEmpty(filterOptions)) {
+    return options;
+  }
+
+  const filterNodes = (
+    nodes: ModifiedGlossaryTerm[]
+  ): ModifiedGlossaryTerm[] => {
+    return nodes.reduce(
+      (acc: ModifiedGlossaryTerm[], node: ModifiedGlossaryTerm) => {
+        const isMatching = filterOptions.includes(
+          node.fullyQualifiedName ?? ''
+        );
+
+        const filteredChildren = !isUndefined(node.children)
+          ? filterNodes(node.children as unknown as ModifiedGlossaryTerm[])
+          : [];
+
+        if (!isMatching) {
+          acc.push({
+            ...node,
+            children: filteredChildren as GlossaryTerm[],
+          });
+        }
+
+        return acc;
+      },
+      []
+    );
+  };
+
+  return filterNodes(options as ModifiedGlossaryTerm[]);
 };

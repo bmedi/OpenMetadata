@@ -74,6 +74,7 @@ import org.openmetadata.service.events.subscription.EventsSubscriptionRegistry;
 import org.openmetadata.service.jdbi3.CollectionDAO;
 import org.openmetadata.service.jdbi3.EventSubscriptionRepository;
 import org.openmetadata.service.jdbi3.ListFilter;
+import org.openmetadata.service.limits.Limits;
 import org.openmetadata.service.resources.Collection;
 import org.openmetadata.service.resources.EntityResource;
 import org.openmetadata.service.security.Authorizer;
@@ -94,10 +95,10 @@ import org.quartz.SchedulerException;
 public class EventSubscriptionResource
     extends EntityResource<EventSubscription, EventSubscriptionRepository> {
   public static final String COLLECTION_PATH = "/v1/events/subscriptions";
-  public static final String FIELDS = "owner,filteringRules";
+  public static final String FIELDS = "owners,filteringRules";
 
-  public EventSubscriptionResource(Authorizer authorizer) {
-    super(Entity.EVENT_SUBSCRIPTION, authorizer);
+  public EventSubscriptionResource(Authorizer authorizer, Limits limits) {
+    super(Entity.EVENT_SUBSCRIPTION, authorizer, limits);
   }
 
   @Override

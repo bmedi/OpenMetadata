@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 /*
  *  Copyright 2023 Collate.
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,11 +11,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
 import { Col, Row, Space, Tabs, Typography } from 'antd';
 import { AxiosError } from 'axios';
 import classNames from 'classnames';
 import { compare } from 'fast-json-patch';
-import { isEmpty, isEqual, isUndefined } from 'lodash';
+import { get, isEmpty, isEqual, isUndefined } from 'lodash';
 import { EntityTags } from 'Models';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +31,7 @@ import DescriptionV1 from '../../components/common/EntityDescription/Description
 import ErrorPlaceHolder from '../../components/common/ErrorWithPlaceholder/ErrorPlaceHolder';
 import Loader from '../../components/common/Loader/Loader';
 import QueryViewer from '../../components/common/QueryViewer/QueryViewer.component';
+import ResizablePanels from '../../components/common/ResizablePanels/ResizablePanels';
 import TabsLabel from '../../components/common/TabsLabel/TabsLabel.component';
 import { DataAssetsHeader } from '../../components/DataAssets/DataAssetsHeader/DataAssetsHeader.component';
 import TableProfiler from '../../components/Database/Profiler/TableProfiler/TableProfiler';
@@ -45,6 +48,7 @@ import { FQN_SEPARATOR_CHAR } from '../../constants/char.constants';
 import {
   getEntityDetailsPath,
   getVersionPath,
+  ROUTES,
 } from '../../constants/constants';
 import { FEED_COUNT_INITIAL_DATA } from '../../constants/entity.constants';
 import { mockDatasetData } from '../../constants/mockTourData.constants';
@@ -55,6 +59,7 @@ import {
   ResourceEntity,
 } from '../../context/PermissionProvider/PermissionProvider.interface';
 import { useTourProvider } from '../../context/TourProvider/TourProvider';
+import { ClientErrors } from '../../enums/Axios.enum';
 import { ERROR_PLACEHOLDER_TYPE } from '../../enums/common.enum';
 import {
   EntityTabs,
@@ -73,6 +78,7 @@ import { Suggestion } from '../../generated/entity/feed/suggestion';
 import { ThreadType } from '../../generated/entity/feed/thread';
 import { TestSummary } from '../../generated/tests/testCase';
 import { TagLabel } from '../../generated/type/tagLabel';
+import LimitWrapper from '../../hoc/LimitWrapper';
 import { useApplicationStore } from '../../hooks/useApplicationStore';
 import { useFqn } from '../../hooks/useFqn';
 import { useSub } from '../../hooks/usePubSub';
@@ -192,7 +198,9 @@ const TableDetailsPageV1: React.FC = () => {
         id: details.id,
       });
     } catch (error) {
-      // Error here
+      if ((error as AxiosError)?.response?.status === ClientErrors.FORBIDDEN) {
+        history.replace(ROUTES.FORBIDDEN);
+      }
     } finally {
       setLoading(false);
     }
@@ -239,7 +247,6 @@ const TableDetailsPageV1: React.FC = () => {
   const {
     tier,
     tableTags,
-    owner,
     deleted,
     version,
     followers = [],
@@ -400,22 +407,17 @@ const TableDetailsPageV1: React.FC = () => {
   };
 
   const handleUpdateOwner = useCallback(
-    async (newOwner?: Table['owner']) => {
+    async (newOwners?: Table['owners']) => {
       if (!tableDetails) {
         return;
       }
       const updatedTableDetails = {
         ...tableDetails,
-        owner: newOwner
-          ? {
-              ...owner,
-              ...newOwner,
-            }
-          : undefined,
+        owners: newOwners,
       };
-      await onTableUpdate(updatedTableDetails, 'owner');
+      await onTableUpdate(updatedTableDetails, 'owners');
     },
-    [owner, tableDetails]
+    [tableDetails]
   );
 
   const handleUpdateRetentionPeriod = useCallback(
@@ -549,69 +551,85 @@ const TableDetailsPageV1: React.FC = () => {
         gutter={[0, 16]}
         id="schemaDetails"
         wrap={false}>
-        <Col className="p-t-sm m-l-lg tab-content-height p-r-lg" flex="auto">
-          <div className="d-flex flex-col gap-4">
-            <DescriptionV1
-              showSuggestions
-              description={tableDetails?.description}
-              entityFqn={datasetFQN}
-              entityName={entityName}
-              entityType={EntityType.TABLE}
-              hasEditAccess={editDescriptionPermission}
-              isDescriptionExpanded={isEmpty(tableDetails?.columns)}
-              isEdit={isEdit}
-              owner={tableDetails?.owner}
-              showActions={!deleted}
-              onCancel={onCancel}
-              onDescriptionEdit={onDescriptionEdit}
-              onDescriptionUpdate={onDescriptionUpdate}
-              onThreadLinkSelect={onThreadLinkSelect}
-            />
-            <SchemaTab
-              hasDescriptionEditAccess={editDescriptionPermission}
-              hasTagEditAccess={editTagsPermission}
-              isReadOnly={deleted}
-              table={tableDetails}
-              testCaseSummary={testCaseSummary}
-              onThreadLinkSelect={onThreadLinkSelect}
-              onUpdate={onColumnsUpdate}
-            />
-          </div>
-        </Col>
-        <Col
-          className="entity-tag-right-panel-container"
-          data-testid="entity-right-panel"
-          flex="320px">
-          <EntityRightPanel<EntityType.TABLE>
-            afterSlot={
-              <Space
-                className="w-full m-t-lg"
-                direction="vertical"
-                size="large">
-                <TableConstraints
-                  constraints={tableDetails?.tableConstraints}
-                />
-              </Space>
-            }
-            beforeSlot={
-              !isEmpty(joinedTables) ? (
-                <FrequentlyJoinedTables joinedTables={joinedTables} />
-              ) : null
-            }
-            customProperties={tableDetails}
-            dataProducts={tableDetails?.dataProducts ?? []}
-            domain={tableDetails?.domain}
-            editCustomAttributePermission={editCustomAttributePermission}
-            editTagPermission={editTagsPermission}
-            entityFQN={datasetFQN}
-            entityId={tableDetails?.id ?? ''}
-            entityType={EntityType.TABLE}
-            selectedTags={tableTags}
-            tablePartition={tableDetails?.tablePartition}
-            viewAllPermission={viewAllPermission}
-            onExtensionUpdate={onExtensionUpdate}
-            onTagSelectionChange={handleTagSelection}
-            onThreadLinkSelect={onThreadLinkSelect}
+        <Col className="tab-content-height-with-resizable-panel" span={24}>
+          <ResizablePanels
+            firstPanel={{
+              className: 'entity-resizable-panel-container',
+              children: (
+                <div className="d-flex flex-col gap-4 p-t-sm m-l-lg p-r-lg">
+                  <DescriptionV1
+                    showSuggestions
+                    description={tableDetails?.description}
+                    entityFqn={datasetFQN}
+                    entityName={entityName}
+                    entityType={EntityType.TABLE}
+                    hasEditAccess={editDescriptionPermission}
+                    isDescriptionExpanded={isEmpty(tableDetails?.columns)}
+                    isEdit={isEdit}
+                    owner={tableDetails?.owners}
+                    showActions={!deleted}
+                    onCancel={onCancel}
+                    onDescriptionEdit={onDescriptionEdit}
+                    onDescriptionUpdate={onDescriptionUpdate}
+                    onThreadLinkSelect={onThreadLinkSelect}
+                  />
+                  <SchemaTab
+                    hasDescriptionEditAccess={editDescriptionPermission}
+                    hasTagEditAccess={editTagsPermission}
+                    isReadOnly={deleted}
+                    table={tableDetails}
+                    testCaseSummary={testCaseSummary}
+                    onThreadLinkSelect={onThreadLinkSelect}
+                    onUpdate={onColumnsUpdate}
+                  />
+                </div>
+              ),
+              minWidth: 800,
+              flex: 0.87,
+            }}
+            secondPanel={{
+              children: (
+                <div data-testid="entity-right-panel">
+                  <EntityRightPanel<EntityType.TABLE>
+                    afterSlot={
+                      <Space
+                        className="w-full m-t-lg"
+                        direction="vertical"
+                        size="large">
+                        <TableConstraints
+                          constraints={tableDetails?.tableConstraints}
+                        />
+                      </Space>
+                    }
+                    beforeSlot={
+                      !isEmpty(joinedTables) ? (
+                        <FrequentlyJoinedTables joinedTables={joinedTables} />
+                      ) : null
+                    }
+                    customProperties={tableDetails}
+                    dataProducts={tableDetails?.dataProducts ?? []}
+                    domain={tableDetails?.domain}
+                    editCustomAttributePermission={
+                      editCustomAttributePermission
+                    }
+                    editTagPermission={editTagsPermission}
+                    entityFQN={datasetFQN}
+                    entityId={tableDetails?.id ?? ''}
+                    entityType={EntityType.TABLE}
+                    selectedTags={tableTags}
+                    tablePartition={tableDetails?.tablePartition}
+                    viewAllPermission={viewAllPermission}
+                    onExtensionUpdate={onExtensionUpdate}
+                    onTagSelectionChange={handleTagSelection}
+                    onThreadLinkSelect={onThreadLinkSelect}
+                  />
+                </div>
+              ),
+              minWidth: 320,
+              flex: 0.13,
+              className:
+                'entity-resizable-panel-container entity-resizable-right-panel-container ',
+            }}
           />
         </Col>
       </Row>
@@ -652,7 +670,7 @@ const TableDetailsPageV1: React.FC = () => {
             entityFeedTotalCount={feedCount.totalCount}
             entityType={EntityType.TABLE}
             fqn={tableDetails?.fullyQualifiedName ?? ''}
-            owner={tableDetails?.owner}
+            owners={tableDetails?.owners}
             onFeedUpdate={getEntityFeedCount}
             onUpdateEntityDetails={fetchTableDetails}
             onUpdateFeedCount={handleFeedCount}
@@ -674,7 +692,7 @@ const TableDetailsPageV1: React.FC = () => {
           ) : (
             <SampleDataTableComponent
               isTableDeleted={deleted}
-              ownerId={tableDetails?.owner?.id ?? ''}
+              owners={tableDetails?.owners ?? []}
               permissions={tablePermissions}
               tableId={tableDetails?.id ?? ''}
             />
@@ -738,15 +756,14 @@ const TableDetailsPageV1: React.FC = () => {
           <TabsLabel id={EntityTabs.DBT} name={t('label.dbt-lowercase')} />
         ),
         isHidden: !(
-          tableDetails?.dataModel?.sql ?? tableDetails?.dataModel?.rawSql
+          tableDetails?.dataModel?.sql || tableDetails?.dataModel?.rawSql
         ),
         key: EntityTabs.DBT,
         children: (
           <QueryViewer
             sqlQuery={
-              tableDetails?.dataModel?.sql ??
-              tableDetails?.dataModel?.rawSql ??
-              ''
+              get(tableDetails, 'dataModel.sql', '') ||
+              get(tableDetails, 'dataModel.rawSql', '')
             }
             title={
               <Space className="p-y-xss">
@@ -1094,7 +1111,6 @@ const TableDetailsPageV1: React.FC = () => {
             onVersionClick={versionHandler}
           />
         </Col>
-
         {/* Entity Tabs */}
         <Col span={24}>
           <Tabs
@@ -1109,7 +1125,9 @@ const TableDetailsPageV1: React.FC = () => {
             onChange={handleTabChange}
           />
         </Col>
-
+        <LimitWrapper resource="table">
+          <></>
+        </LimitWrapper>
         {threadLink ? (
           <ActivityThreadPanel
             createThread={createThread}

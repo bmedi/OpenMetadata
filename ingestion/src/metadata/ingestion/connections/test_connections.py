@@ -36,6 +36,7 @@ from metadata.generated.schema.entity.services.connections.testConnectionResult 
     TestConnectionResult,
     TestConnectionStepResult,
 )
+from metadata.generated.schema.type.basic import Timestamp
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
 from metadata.profiler.orm.functions.conn_test import ConnTestFn
 from metadata.utils.logger import cli_logger
@@ -146,12 +147,16 @@ def _test_connection_steps_automation_workflow(
                     # break the workflow if the step is a short circuit step
                     break
 
-            test_connection_result.lastUpdatedAt = datetime.now().timestamp()
+            test_connection_result.lastUpdatedAt = Timestamp(
+                int(datetime.now().timestamp() * 1000)
+            )
             metadata.patch_automation_workflow_response(
                 automation_workflow, test_connection_result, WorkflowStatus.Running
             )
 
-        test_connection_result.lastUpdatedAt = datetime.now().timestamp()
+        test_connection_result.lastUpdatedAt = Timestamp(
+            int(datetime.now().timestamp() * 1000)
+        )
 
         test_connection_result.status = (
             StatusType.Failed
@@ -272,7 +277,9 @@ def test_connection_engine_step(connection: Engine) -> None:
     Generic step to validate the connection against a db
     """
     with connection.connect() as conn:
-        conn.execute(ConnTestFn())
+        result = conn.execute(ConnTestFn())
+        if result:
+            result.fetchone()
 
 
 def test_connection_db_common(

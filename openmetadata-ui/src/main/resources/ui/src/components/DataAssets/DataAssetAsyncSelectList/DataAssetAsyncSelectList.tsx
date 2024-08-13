@@ -24,7 +24,7 @@ import {
   getEntityName,
   getEntityReferenceFromEntity,
 } from '../../../utils/EntityUtils';
-import { getEntityIcon } from '../../../utils/TableUtils';
+import searchClassBase from '../../../utils/SearchClassBase';
 import { showErrorToast } from '../../../utils/ToastUtils';
 import Loader from '../../common/Loader/Loader';
 import ProfilePicture from '../../common/ProfilePicture/ProfilePicture';
@@ -67,12 +67,11 @@ const DataAssetAsyncSelectList: FC<DataAssetAsyncSelectListProps> = ({
         query: searchQueryParam ? `*${searchQueryParam}*` : '*',
         pageNumber: page,
         pageSize: pageSize,
-        queryFilter: {},
         searchIndex: searchIndex,
         // Filter out bots from user search
-        ...(searchIndex === SearchIndex.USER || searchIndex.includes('user')
-          ? { filters: 'isBot:false' }
-          : {}),
+        queryFilter: {
+          query: { bool: { must_not: [{ match: { isBot: true } }] } },
+        },
       });
 
       const hits = dataAssetsResponse.hits.hits;
@@ -132,8 +131,9 @@ const DataAssetAsyncSelectList: FC<DataAssetAsyncSelectListProps> = ({
       let label;
       if (
         searchIndex === SearchIndex.USER ||
-        searchIndex.includes('user') ||
-        searchIndex.includes('team')
+        searchIndex === SearchIndex.TEAM ||
+        reference.type === EntityType.USER ||
+        reference.type === EntityType.TEAM
       ) {
         label = (
           <Space>
@@ -144,7 +144,9 @@ const DataAssetAsyncSelectList: FC<DataAssetAsyncSelectListProps> = ({
               type="circle"
               width="24"
             />
-            <span className="m-l-xs">{getEntityName(option)}</span>
+            <span className="m-l-xs" data-testid={getEntityName(option)}>
+              {getEntityName(option)}
+            </span>
           </Space>
         );
       } else {
@@ -153,7 +155,7 @@ const DataAssetAsyncSelectList: FC<DataAssetAsyncSelectListProps> = ({
             className="d-flex items-center gap-2"
             data-testid={`option-${value}`}>
             <div className="flex-center data-asset-icon">
-              {getEntityIcon(reference.type)}
+              {searchClassBase.getEntityIcon(reference.type)}
             </div>
             <div className="d-flex flex-col">
               <span className="text-grey-muted text-xs">{reference.type}</span>
